@@ -1,5 +1,6 @@
 ###### Requirements without Version Specifiers ######
 BeautifulSoup4
+datetime
 ecomplexity
 glob
 json
@@ -7,6 +8,7 @@ networkx
 numpy
 matplotlib
 pandas
+pytz
 request
 tarfile
 time
