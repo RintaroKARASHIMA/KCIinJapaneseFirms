@@ -1,0 +1,17 @@
+###### Requirements without Version Specifiers ######
+BeautifulSoup4
+ecomplexity
+glob
+json
+networkx
+numpy
+matplotlib
+pandas
+request
+tarfile
+time
+urllib
+
+#
+
+###### Requirements with Version Specifiers ######
