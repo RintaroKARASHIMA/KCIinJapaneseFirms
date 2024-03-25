@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np
+# import numpy as np
 
 
 def by_classification(
@@ -23,9 +23,10 @@ def by_classification(
     )
     return class_weight_df
 
+
 def by_applicant(
-                        df: pd.DataFrame
-                        ):
+                df: pd.DataFrame
+                ):
     applicant_weight_df = (
             df.copy()
             .groupby(['reg_num'])[['right_person_name']]
@@ -34,11 +35,11 @@ def by_applicant(
             .rename(columns={'right_person_name': 'applicant_weight'})
         )
 
-        # applicant_weight_df['weight'] = round(1 / applicant_weight_df['weight'], 2)
+    # applicant_weight_df['weight'] = round(1 / applicant_weight_df['weight'], 2)
 
     applicant_weight_df = pd.merge(
         df, applicant_weight_df,
-        on=['reg_num', 'right_person_name'],
+        on=['reg_num'],
         how='left'
     )
 
