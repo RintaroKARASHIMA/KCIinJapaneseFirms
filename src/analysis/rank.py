@@ -245,18 +245,28 @@ def rank_doubleaxis(
     }
     ax.xaxis.set_major_locator(MultipleLocator(1))
     ax.yaxis.set_major_locator(FixedLocator(first_top_sources["rank"].to_list()))
+    # ax.yaxis.set_major_formatter(
+    #     FixedFormatter(
+    #         [name_conv_dict[name] for name in first_top_sources[member_col].to_list()]
+    #     )
+    # )
     ax.yaxis.set_major_formatter(
         FixedFormatter(
-            [name_conv_dict[name] for name in first_top_sources[member_col].to_list()]
+            first_top_sources[member_col].to_list()
         )
     )
 
     # 右側の軸
     yax2 = ax.secondary_yaxis("right")
     yax2.yaxis.set_major_locator(FixedLocator(last_top_sources["rank"].to_list()))
+    # yax2.yaxis.set_major_formatter(
+    #     FixedFormatter(
+    #         [name_conv_dict[name] for name in last_top_sources[member_col].to_list()]
+    #     )
+    # )
     yax2.yaxis.set_major_formatter(
         FixedFormatter(
-            [name_conv_dict[name] for name in last_top_sources[member_col].to_list()]
+            last_top_sources[member_col].to_list()
         )
     )
 
