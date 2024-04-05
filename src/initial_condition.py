@@ -14,7 +14,7 @@ CLASS_WEIGHT = "fraction"  # fraction or duplication
 APPLICANT_WEIGHT = "fraction"  # fraction or duplication
 
 EXTRACT_POPULATION = "all"  # all or sep_year
-TOP_P_OR_NUM = ('num', 500)  # (p or num, int)
+TOP_P_OR_NUM = ('num', 100)  # (p or num, int)
 
 COLOR_LIST = [
     "turquoise",
