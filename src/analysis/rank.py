@@ -312,7 +312,7 @@ def rank_doubleaxis(
     )
 
     # 収まるように描画しようね
-    plt.tight_layout()
+    fig.tight_layout()
 
     return rank_df
 
