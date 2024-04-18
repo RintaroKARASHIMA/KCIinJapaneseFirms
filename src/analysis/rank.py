@@ -308,7 +308,7 @@ def rank_doubleaxis(
             prop_dict["year_range"],
         ),
         list(rank_df["period"].unique()),
-        rotation=0,
+        rotation=90,
     )
 
     # 収まるように描画しようね
