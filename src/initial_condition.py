@@ -3,7 +3,7 @@
 
 ## 初期条件
 AR = "app"  # app or reg
-YEAR_STYLE = "year"  # nendo or year
+YEAR_STYLE = "nendo"  # nendo or year
 
 YEAR_START = 1981  # int
 YEAR_END = 2010  # int
