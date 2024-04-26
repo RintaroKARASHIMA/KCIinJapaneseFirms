@@ -3,6 +3,7 @@
 
 # データ
 /data/*
+/tests/*
 
 # python関係
 # Byte-compiled / optimized / DLL files
