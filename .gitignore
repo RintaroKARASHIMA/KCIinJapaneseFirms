@@ -3,7 +3,9 @@
 
 # データ
 /data/*
-/tests/*
+/tests/*.csv
+/tests/*.txt
+
 
 # python関係
 # Byte-compiled / optimized / DLL files
