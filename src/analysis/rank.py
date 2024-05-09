@@ -349,7 +349,7 @@ def rank_doubleaxis(
     plt.xticks(
         range(
             0,
-            len(segments_list) + 1,
+            len(segments_list),
             1,
             # prop_dict['year_range'],
         ),
