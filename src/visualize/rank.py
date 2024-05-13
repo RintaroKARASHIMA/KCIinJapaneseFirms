@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FixedFormatter, FixedLocator
 
 # original module
-import conv, pallet
+import sys
+sys.path.append('../../src')
+from visualize import conv, pallet
 
 # plt.rcParams['font.family'] = 'Meiryo'
 # plt.rcParams['font.size'] = 15
