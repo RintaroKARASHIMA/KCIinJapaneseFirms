@@ -100,4 +100,6 @@ TECH_COLORS_DICT = {'Digital communication': '#ffa100',
                     'Surface technology, coating': '#ff0000',
                     'Transport': '#0035ff',
                     'Handling': '#0035ff',
-                    'Mechanical elements': '#0035ff'}
+                    'Mechanical elements': '#0035ff',
+                    'Machine tools': '#0035ff',
+                    'Analysis of biological materials': '#1aff00'}
