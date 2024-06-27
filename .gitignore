@@ -3,6 +3,7 @@
 
 # データ
 /data/*
+/output/*
 /tests/*.csv
 /tests/*.txt
 
