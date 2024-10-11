@@ -5,7 +5,8 @@ from matplotlib.ticker import MultipleLocator, FixedFormatter, FixedLocator
 
 # original module
 import sys
-sys.path.append('../../src')
+
+sys.path.append("../../src")
 from visualize import conv, pallet
 
 # plt.rcParams['font.family'] = 'Meiryo'
@@ -30,23 +31,24 @@ darker_colors_list = pallet.DARKER_COLORS_LIST
 name_conv_dict = conv.NAME_CONV_DICT
 tech_colors_dict = pallet.TECH_COLORS_DICT
 
+
 def rank_doubleaxis(
-                    df_dict: dict,
-                    rank_num: int = 15,
-                    member_col: str = 'right_person_name',
-                    value_col: str = 'reg_num',
-                    prop_dict: dict = {
-                                        'figsize': (16, 10),
-                                        'xlabel': 'Segment',
-                                        'ylabel': 'y軸のラベル',
-                                        'title': 'タイトル',
-                                        'fontsize': 15,
-                                        'year_range': 15,
-                                        'ascending': False,
-                                        'color': 'default',
-                                        },
-                    ):
-    '''
+    df_dict: dict,
+    rank_num: int = 15,
+    member_col: str = "right_person_name",
+    value_col: str = "reg_num",
+    prop_dict: dict = {
+        "figsize": (16, 10),
+        "xlabel": "Segment",
+        "ylabel": "y軸のラベル",
+        "title": "タイトル",
+        "fontsize": 15,
+        "year_range": 15,
+        "ascending": False,
+        "color": "default",
+    },
+):
+    """
     Args:
         df_dict: dict
             key: str, 区間名
@@ -63,94 +65,99 @@ def rank_doubleaxis(
             year_range: int, 15
             ascending: bool, False
             color: str, 'default'
-    
-    '''
-    plt.rcParams['font.size'] = prop_dict['fontsize']
-    plt.rcParams['font.family'] = 'Meiryo'
-    
+
+    """
+    plt.rcParams["font.size"] = prop_dict["fontsize"]
+    plt.rcParams["font.family"] = "Meiryo"
+
     rank_dfs_dict = df_dict.copy()
     segments_list = list(rank_dfs_dict.keys())
 
     for period, rank_df in rank_dfs_dict.items():
         rank_df = rank_df[[member_col, value_col]].copy()
-        rank_df['rank'] = rank_df[value_col].rank(method='first', ascending=prop_dict['ascending']).astype(np.int64)
-        rank_df['segment'] = period
+        rank_df["rank"] = (
+            rank_df[value_col]
+            .rank(method="first", ascending=prop_dict["ascending"])
+            .astype(np.int64)
+        )
+        rank_df["segment"] = period
         # try: rank_df['segment'] = int(period[:4])
         # except ValueError: rank_df['segment'] = period
-        rank_df = rank_df.sort_values(by=['rank'], ascending=True)
-        rank_dfs_dict[period] = rank_df[[member_col, 'rank', 'segment']].copy()
-    rank_df = pd.concat(list(rank_dfs_dict.values()), ignore_index=True, axis='index')
-    rank_df['segment'] = pd.Categorical(rank_df['segment'], categories=segments_list, ordered=True)
-    
-    # 左軸の上位
-    first_top_sources = rank_df[(rank_df['segment'] == segments_list[0]) & (rank_df['rank'] <= rank_num)]
-    # 右軸の上位
-    last_top_sources = rank_df[(rank_df['segment'] == segments_list[-1]) & (rank_df['rank'] <= rank_num)]
+        rank_df = rank_df.sort_values(by=["rank"], ascending=True)
+        rank_dfs_dict[period] = rank_df[[member_col, "rank", "segment"]].copy()
+    rank_df = pd.concat(list(rank_dfs_dict.values()), ignore_index=True, axis="index")
+    rank_df["segment"] = pd.Categorical(
+        rank_df["segment"], categories=segments_list, ordered=True
+    )
 
-    hr_list = rank_df[rank_df['rank'] <= rank_num][member_col].unique().tolist()
+    # 左軸の上位
+    first_top_sources = rank_df[
+        (rank_df["segment"] == segments_list[0]) & (rank_df["rank"] <= rank_num)
+    ]
+    # 右軸の上位
+    last_top_sources = rank_df[
+        (rank_df["segment"] == segments_list[-1]) & (rank_df["rank"] <= rank_num)
+    ]
+
+    hr_list = rank_df[rank_df["rank"] <= rank_num][member_col].unique().tolist()
 
     color_list = (lighter_colors_list + original_colors_list + darker_colors_list) * (
         len(hr_list) // 60 + 1
     )
 
-    hr_color_dict = {hr: 'gray' for hr in rank_df[member_col].unique().tolist()}
+    hr_color_dict = {hr: "gray" for hr in rank_df[member_col].unique().tolist()}
     for i, hr in enumerate(hr_list):
         hr_color_dict[hr] = color_list[i]
-    if prop_dict['color'] == 'default':
+    if prop_dict["color"] == "default":
         for i, hr in enumerate(hr_list):
             hr_color_dict[hr] = color_list[i]
     else:
-        for k, v in prop_dict['color'].items():
+        for k, v in prop_dict["color"].items():
             hr_color_dict[k] = v
     hr_color_dict = {**hr_color_dict, **tech_colors_dict}
     # hr_color_dict = dict(zip(hr_list, color_list[:len(hr_list)]))
     # キャンバスの生成
     fig, ax = plt.subplots(
-        figsize=prop_dict['figsize'], subplot_kw=dict(ylim=(0.5, 0.5 + rank_num))
+        figsize=prop_dict["figsize"], subplot_kw=dict(ylim=(0.5, 0.5 + rank_num))
     )
 
-    
     ax.xaxis.set_major_locator(MultipleLocator(1))
-    ax.yaxis.set_major_locator(FixedLocator(first_top_sources['rank'].to_list()))
-    
+    ax.yaxis.set_major_locator(FixedLocator(first_top_sources["rank"].to_list()))
+
     # ax.yaxis.set_major_formatter(
     #     FixedFormatter(
     #         [name_conv_dict[name] for name in first_top_sources[member_col].to_list()]
     #     )
     # )
     ax.yaxis.set_major_formatter(
-        FixedFormatter(
-            first_top_sources[member_col].to_list()
-        )
+        FixedFormatter(first_top_sources[member_col].to_list())
     )
 
     # 右側の軸
-    yax2 = ax.secondary_yaxis('right')
-    yax2.yaxis.set_major_locator(FixedLocator(last_top_sources['rank'].to_list()))
+    yax2 = ax.secondary_yaxis("right")
+    yax2.yaxis.set_major_locator(FixedLocator(last_top_sources["rank"].to_list()))
     # yax2.yaxis.set_major_formatter(
     #     FixedFormatter(
     #         [name_conv_dict[name] for name in last_top_sources[member_col].to_list()]
     #     )
     # )
     yax2.yaxis.set_major_formatter(
-        FixedFormatter(
-            last_top_sources[member_col].to_list()
-        )
+        FixedFormatter(last_top_sources[member_col].to_list())
     )
 
     i = 0
-    for member, rank in rank_df[rank_df['rank'] <= 10000].groupby(member_col):
+    for member, rank in rank_df[rank_df["rank"] <= 10000].groupby(member_col):
         ax.plot(
-            'segment',
-            'rank',
-            'o-',
+            "segment",
+            "rank",
+            "o-",
             data=rank,
             linewidth=7,
             markersize=10,
             # color=hr_color_dict[member],
             color=hr_color_dict[member],
-            alpha=0.6, 
-            label=member
+            alpha=0.6,
+            label=member,
         )
 
     # 降順で描画しようね
@@ -158,13 +165,13 @@ def rank_doubleaxis(
 
     # 軸ラベルとタイトル
     ax.set(
-        xlabel='\n' + prop_dict['xlabel'],
-        ylabel=prop_dict['ylabel'] + '\n',
-        title=prop_dict['title'],
+        xlabel="\n" + prop_dict["xlabel"],
+        ylabel=prop_dict["ylabel"] + "\n",
+        title=prop_dict["title"],
     )
 
     # 補助線
-    ax.grid(axis='both', linestyle='--', c='lightgray')
+    ax.grid(axis="both", linestyle="--", c="lightgray")
 
     # 枠線消えちゃえ
     [s.set_visible(False) for s in ax.spines.values()]
@@ -179,7 +186,7 @@ def rank_doubleaxis(
             # prop_dict['year_range'],
         ),
         segments_list,
-        rotation=90
+        rotation=90,
     )
 
     # 収まるように描画しようね
