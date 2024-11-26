@@ -11,6 +11,7 @@ from matplotlib import rc
 plt.rcParams['font.family'] = 'Meiryo'
 plt.rcParams['font.size'] = 15
 
+#%%
 # RCAの分布
 def rca(rca_tbl: pd.pivot_table, 
         prop_dict: dict={'figsize': (12, 8), 
@@ -113,6 +114,7 @@ def hr_degree_distribution(graph,
     Returns:
         None
     """
+    
     def ccdf(node_degree_dict):
         freq_array = np.array(np.bincount(list(node_degree_dict.values())))
         p_list = []

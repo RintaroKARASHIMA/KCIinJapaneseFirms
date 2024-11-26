@@ -25,6 +25,8 @@ Rintaro Karashima is the only person who is responsible for this repository.
 
 ## ディレクトリ構造
 
+`<pre>`
+
 KCIinJapaneseFirms
 ├───archive
 ├───data
@@ -110,3 +112,5 @@ KCIinJapaneseFirms
 │   ├───process
 │   └───visualize
 └───tests
+
+`</pre>`
