@@ -17,6 +17,7 @@ numpy = "^1.21.0"
 # 開発用依存関係
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.4"
+black = "^21.5b1"
 
 [build-system]
 requires = ["setuptools", "wheel"]

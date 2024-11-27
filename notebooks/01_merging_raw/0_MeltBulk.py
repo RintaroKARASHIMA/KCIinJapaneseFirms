@@ -1,19 +1,33 @@
+#! (root)/notebooks/0_merge_raw/0_MeltBulk.py python3
+# -*- coding: utf-8 -*-
+
 # %%
-# Import the Modules
+# %load 0_LoadLibrary.py
+## Import Library
+### Processing Data
+import sys
+from glob import glob
 import pandas as pd
 import numpy as np
 import time
-from glob import glob
 from bs4 import BeautifulSoup
 import urllib.request
 import tarfile
 
-# %%
-# Set the Path
-global DATA_DIR, EXCUTE_COUNT
-DATA_DIR = "../../data/original/internal/"
-EXCUTE_COUNT = 0
+### Visualization
+from IPython.display import display
 
+### Set Visualization Parameters
+pd.options.display.float_format = "{:.3f}".format
+
+## Import Original Modules
+sys.path.append("../../src")
+from process import weight
+from visualize import rank as vr
+
+## Initialize Global Variables
+global DATA_DIR
+DATA_DIR = "../../data/original/internal/"
 
 # %%
 # Get the Data
@@ -23,6 +37,7 @@ def get_data(master_name, coding="utf-8"):
 
     with open(html_file, "r", encoding=coding) as f:
         html_text = f.read()
+        f.close()
 
     soup = BeautifulSoup(html_text, "html.parser")
     href_list = list(
@@ -77,7 +92,6 @@ def extract_data(master_name):
 # %%
 # Main
 for mn in ["JPWRP", "JPWIP", "JPWAP"]:
-    # if EXCUTE_COUNT == 0: get_data(mn)
-    EXCUTE_COUNT += 1
+    # get_data(mn)
     extract_data(mn)
 print("completed!")

@@ -58,7 +58,7 @@ output_condition = f"{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{t
 
 ## Check the condition
 print(input_condition)
-
+print(output_condition)
 
 # %%
 def kh_ki(c_df, classification, n=19):
@@ -98,6 +98,7 @@ def kh_ki(c_df, classification, n=19):
             .rename(columns={f"ki_{i+1}": f"kh_{i+2}"}),
             on=[region_corporation],
             how="left",
+            copy=False
         )
         kh_ki_df = pd.merge(
             kh_ki_df,
@@ -108,7 +109,8 @@ def kh_ki(c_df, classification, n=19):
             .copy()
             .rename(columns={f"kh_{i+1}": f"ki_{i+2}"}),
             on=[classification],
-            how="left",
+            how="left", 
+            copy=False
         )
         kh_ki_df[f"kh_{i+2}"] = kh_ki_df[f"kh_{i+2}"] / kh_ki_df["diversity"]
         kh_ki_df[f"ki_{i+2}"] = kh_ki_df[f"ki_{i+2}"] / kh_ki_df["ubiquity"]
