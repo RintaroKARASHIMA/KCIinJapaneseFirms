@@ -4,8 +4,9 @@
 # データ
 /data/*
 /output/*
+
+# テスト
 /tests/*
-/archive/*
 
 # python関係
 # Byte-compiled / optimized / DLL files
