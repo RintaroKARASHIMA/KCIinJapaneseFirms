@@ -1,0 +1,13 @@
+{
+    "vscode-office.editorLanguage": "ja_JP",
+    "vscode-office.editorTheme": "Auto",
+    "vscode-office.quickOpen": true,
+    "vscode-office.viewAbsoluteLocal": true,
+    "vscode-office.workspacePathAsImageBasePath": true,
+    "markdown.trace.extension": "verbose",
+    "markdown-preview-github-styles.lightTheme": "dark",
+    "markdown.editor.drop.enabled": "always",
+    "markdown.preview.openMarkdownLinks": "inEditor",
+    "markdown.validate.enabled": true,
+    "workbench.editor.defaultBinaryEditor": "markdown-notebook"
+}

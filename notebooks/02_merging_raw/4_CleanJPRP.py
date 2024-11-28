@@ -1,21 +1,26 @@
-# Weekly Patent Registration Data
+#! (root)/notebooks/02_merging_raw/4_CleanJPRP.py python3
+# -*- coding: utf-8 -*-
 
 #%%
-# Import Modules
+# %load 0_LoadLibraries.py
+## Import Library
+### Processing Data
 import pandas as pd
+import numpy as np
+
+
+### Visualization
 from IPython.display import display
 
-import numpy as np
-from glob import glob
+### Set Visualization Parameters
+pd.options.display.float_format = "{:.3f}".format
 
-#%%
-# Initialize Global Variable
+## Initialize Global Variables
 global DATA_DIR, OUTPUT_DIR
-DATA_DIR = '../../data/original/internal/bulk/JPWRP/'
-OUTPUT_DIR = '../../data/interim/internal/bulk/'
+DATA_DIR = '../../data/original/internal/stack/JPRP/'
+OUTPUT_DIR = '../../data/interim/internal/stack/'
 
 #%%
-# Set Extract Information
 needed_col_dict = {
                    'upd_mgt_info_p.tsv':[
                                         # 'processing_type', # 処理種別
@@ -38,35 +43,32 @@ needed_col_dict = {
                    }
 
 #%%
-# Load and Store Original Data 
-original_df_dict = {file: [
-                            pd.read_csv(path,
-                                       sep='\t', 
-                                       encoding='utf-8', 
-                                #        dtype=str)\
-                                       dtype=str, 
-                                       usecols=needed_col_dict[file])\
-                            for path in glob(DATA_DIR+file.split('.')[0]+'/*')
-                           ]\
-                            for file in needed_col_dict.keys()
-                            }
+original_df_dict = {file: pd.read_csv(DATA_DIR + file,
+                                      sep='\t', 
+                                      encoding='utf-8', 
+                                      dtype=str, 
+                                      usecols=needed_col_dict[file])
+                    for file in needed_col_dict.keys()}
+
 
 #%%
-# Grasp the Data
-display(original_df_dict['upd_mgt_info_p.tsv'][0].head())
-
-#%% 
-# 
-mgt_df_list = original_df_dict['upd_mgt_info_p.tsv'].copy()
-mgt_df = pd.concat(mgt_df_list, 
-                   ignore_index=True, 
-                   axis='index')\
-            .drop_duplicates(keep='first')\
-            .reset_index(drop=True)
+## 登録情報マスタ
+mgt_df = original_df_dict['upd_mgt_info_p.tsv'].copy()
+# mgt_df = mgt_df[needed_col_dict['upd_mgt_info_p.tsv']]
 mgt_df.head()
 # mgt_df.describe(include='all')
-
-mgt_df.to_csv(f'{output_dir}reg_info.csv', 
+mgt_df.to_csv(f'{OUTPUT_DIR}reg_info.csv', 
               sep=',', 
               encoding='utf-8', 
               index=False)
+
+#%%
+## 特許権者全数ver.
+hr_df = original_df_dict['upd_right_person_art_p.tsv'].copy()
+# hr_df = hr_df[needed_col_dict['upd_right_person_art_p.tsv']]
+hr_df.head()
+# hr_df#.describe(include='all')
+hr_df.to_csv(f'{OUTPUT_DIR}hr.csv', 
+             sep=',', 
+             encoding='utf-8', 
+             index=False)

@@ -1,25 +1,22 @@
-<h1>KCIinJapaneseFirms</h1>
+# KCIinJapaneseFirms
 
-This project is undergoing. Thus this README is also incompleted.
-<br/>日本語版（未完成）は[こちら](https://github.com/RintaroKARASHIMA/KCIinJapaneseFirms/blob/master/README_jp.md)から
+This project is undergoing. Thus this README is also incomplete.
+<br>
+日本語版は[こちら](https://github.com/RintaroKARASHIMA/KCIinJapaneseFirms/blob/master/README_en.md)から（未完成）
 
-<h2>About (TL;DR)</h2>
+## 概要
+KCIinJapaneseFirmsは、日本の法人が持つ複雑さと技術の複雑さを定量化することで評価を試みた
 
-This project is a log for the research which applies [KCI (Knowledge Complexity Index)](https://) to Japanese corporations.
-<br/>**Rintaro Karashima** is the only person who conducts the research and is responsible for this repository.
+Rintaro Karashima is the only person who is responsible for this repository.
 
-- The directory of this projects mainly consists of **four private** and **two public** folders as following.
-  <br/>[1] archive (private):
-  <br/>[2] data (private):
-  <br/>[3] **notebooks** (public):
-  <br/>[4] outputs (private):
-  <br/>[5] **src** (public):
-  <br/>[6] tests (private):
+- The directory of this projects is mainly consist of **three** parts as following.
+<br/>1. **data**: 
+<br/>2. **notebooks**: 
+<br/>3. **src**: 
 
-<h2>Directory Structure</h2>
+## ディレクトリ構造
 
-<details><summary><h3>Entire Directory Structure</h3></summary>
-<br/>```
+```html
 root/
 ├───archive
 ├───data
@@ -34,7 +31,7 @@ root/
 │   │       ├───fixed
 │   │       ├───merged
 │   │       └───stack
-│   ├───raw
+│   ├───original
 │   │   ├───external
 │   │   │   ├───city
 │   │   │   ├───eutci
@@ -44,6 +41,14 @@ root/
 │   │   │   └───schmoch
 │   │   └───internal
 │   │       ├───bulk
+│   │       │   ├───20230927
+│   │       │   │   ├───JPWAP
+│   │       │   │   ├───JPWIP
+│   │       │   │   └───JPWRP
+│   │       │   ├───20231004
+│   │       │   │   ├───JPWAP
+│   │       │   │   ├───JPWIP
+│   │       │   │   └───JPWRP
 │   │       │   ├───JPWAP
 │   │       │   │   ├───upd_pmac_g_app_case
 │   │       │   │   └───upd_sinseinin
@@ -62,13 +67,8 @@ root/
 │   │       │   └───JPWRP
 │   │       └───stack
 │   │           ├───JPAP
-│   │           │   ├───upd_pmac_g_app_case
-│   │           │   └───upd_sinseinin
 │   │           ├───JPIP
-│   │           │   └───upd_dsptch_fin_ipc
 │   │           └───JPRP
-│   │               ├───upd_mgt_info_p
-│   │               └───upd_right_person_art_p
 │   └───processed
 │       ├───external
 │       │   ├───abroad
@@ -91,23 +91,13 @@ root/
 │   ├───05_calculation
 │   ├───06_producer_long
 │   ├───07_tech_long
-│   ├───08_producer_sep
-│   ├───09_tech_sep
-│   ├───10_network_long
-│   └───11_tech_r_national_comparison
+│   ├───08_tech_comparative_analysis
+│   ├───09_tech_comparative_analysis
+│   ├───10_tech_comparative_analysis
+│   └───11_network_analysis
 ├───output
-│   ├───charts
-│   │   ├───adjacency_matrix
-│   │   ├───tech_long_ctci_vs_rtci
-│   │   ├───tech_long_finer_vs_coarse
-│   │   ├───tech_long_finer_vs_coarse_residual
-│   │   ├───tech_long_tci_vs_avediversity
-│   │   ├───tech_long_ubiquity_vs_avediversity
-│   │   ├───tech_long_ubiquity_vs_tci
-│   │   └───tech_sep_ranking
-│   ├───networks
-│   │   ├───product_space
-│   │   └───projection
+│   ├───figures
+│   ├───reports
 │   └───tables
 ├───src
 │   ├───analysis
@@ -116,10 +106,8 @@ root/
 │   └───visualize
 └───tests
 ```
-</details>
 
-
-<h3>Data</h3>
+## データの内容
 
 - **datasets/education_conversations.csv**: 教育会話データセット。各行は個別の会話を表します。
 - **datasets/annotations.json**: 会話データの注釈ファイル。
@@ -133,6 +121,3 @@ root/
 
 - **scripts/preprocess.py**: データの前処理スクリプト。
 - **scripts/analyze.py**: データ分析スクリプト。
-
-
-[^1]: Here is My reference

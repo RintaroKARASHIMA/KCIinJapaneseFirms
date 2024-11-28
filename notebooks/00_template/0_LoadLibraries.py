@@ -1,3 +1,6 @@
+#! (root)/notebooks/00_template/0_LoadLibraries.py python3
+# -*- coding: utf-8 -*-
+
 ## Import Library
 ### Processing Data
 import sys

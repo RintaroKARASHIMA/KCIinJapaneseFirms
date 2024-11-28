@@ -1,11 +1,13 @@
-# %%
+#! (root)/notebooks/06_producer_long/r2_Coarse.py python3
+# -*- coding: utf-8 -*-
+
+#%%
+# %load 0_LoadLibraries.py 
 ## Import Library
 ### Processing Data
 import pandas as pd
 import numpy as np
 import sys
-
-sys.path.append("../../src")
 
 ### Visualization
 from IPython.display import display
@@ -29,6 +31,7 @@ plt.rcParams["font.size"] = 20
 pd.options.display.float_format = "{:.3f}".format
 
 ## Import Original Modules
+sys.path.append("../../src")
 import initial_condition
 from process import weight
 from visualize import rank as vr

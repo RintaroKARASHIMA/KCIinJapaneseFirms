@@ -1,4 +1,4 @@
-#! (root)/notebooks/0_merge_raw/0_MeltBulk.py python3
+#! (root)/notebooks/02_merge_raw/1_MeltBulk.py python3
 # -*- coding: utf-8 -*-
 
 # %%
@@ -27,7 +27,7 @@ from visualize import rank as vr
 
 ## Initialize Global Variables
 global DATA_DIR
-DATA_DIR = "../../data/original/internal/"
+DATA_DIR = "../../data/raw/internal/"
 
 # %%
 # Get the Data
@@ -92,6 +92,6 @@ def extract_data(master_name):
 # %%
 # Main
 for mn in ["JPWRP", "JPWIP", "JPWAP"]:
-    # get_data(mn)
+    get_data(mn)
     extract_data(mn)
 print("completed!")
