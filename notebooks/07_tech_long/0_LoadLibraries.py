@@ -1,35 +1,19 @@
-#! (root)/notebooks/06_producer_long/0_Load_Libraries.py python3
+#! (root)/notebooks/07_tech_long/0_LoadLibraries.py python3
 # -*- coding: utf-8 -*-
 
 ## Import Library
-### System
-import IPython
-import io
-import sys
-
 ### Processing Data
-import numpy as np
+import sys
 import pandas as pd
+import numpy as np
 
 ### Visualization
-import cv2
-import matplotlib.pyplot as plt
-import matplotlib.ticker as ptick
-from PIL import Image
 from IPython.display import display
-import seaborn as sns
-
-
-### Network Analysis
-import networkx as nx
-import networkx.algorithms.bipartite as bip
 
 ### Third Party
 from ecomplexity import ecomplexity
 
 ### Set Visualization Parameters
-plt.rcParams["font.family"] = "Meiryo"
-plt.rcParams["font.size"] = 20
 pd.options.display.float_format = "{:.3f}".format
 
 ## Import Original Modules
@@ -38,7 +22,7 @@ import initial_condition
 from process import weight
 from visualize import rank as vr
 
-### Initialize Conditions
+### Import Initial Conditions
 ar = initial_condition.AR
 year_style = initial_condition.YEAR_STYLE
 
