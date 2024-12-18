@@ -1,26 +1,26 @@
 <h1>KCIinJapaneseFirms</h1>
 
 This project is undergoing. Thus this README is also incompleted.
-<br/>日本語版（未完成）は[こちら](https://github.com/RintaroKARASHIMA/KCIinJapaneseFirms/blob/master/README_jp.md)から
+`<br/>`日本語版（未完成）は[こちら](https://github.com/RintaroKARASHIMA/KCIinJapaneseFirms/blob/master/README_jp.md)から
 
 <h2>About (TL;DR)</h2>
 
 This project is a log for the research which applies [KCI (Knowledge Complexity Index)](https://) to Japanese corporations.
-<br/>**Rintaro Karashima** is the only person who conducts the research and is responsible for this project.
+`<br/>`**Rintaro Karashima** is the only person who conducts the research and is responsible for this project.
 
 - The directory of this project mainly consists of **four private** and **two public** folders as following.
-  <br/>(1) archive (private):
-  <br/>(2) data (private):
-  <br/>(3) **notebooks** (public):
-  <br/>(4) outputs (private):
-  <br/>(5) **src** (public):
-  <br/>(6) tests (private):
+  `<br/>`(1) archive (private):
+  `<br/>`(2) data (private):
+  `<br/>`(3) **notebooks** (public):
+  `<br/>`(4) outputs (private):
+  `<br/>`(5) **src** (public):
+  `<br/>`(6) tests (private):
 
 <h2>Directory Structure</h2>
 本プロジェクトディレクトリ構造の全体像と、それを構成する各フォルダ/ファイルについて、定義を示す。
 <br/>以下、`メモリ効率の高い処理`は、文字通り可読性よりもメモリ効率を優先した処理を指し、例えばpandasでは再帰代入（recursive query/function）が挙げられる。
 <br/>同様に、`可読性の高い処理`は、メモリ効率よりも可読性を優先した処理を指し、例えばpandasではquery methodとmethod chainingが挙げられる。
-<br/>なお、どちらの処理においても推奨されないchaining(chained indexing/assignment、あるいはhidden chaining)やmutatingといった処理は使わない。
+<br/>なお、どちらの処理においても余計なコピーが発生しやすく可読性の低いBoolean Indexingや推奨されないchaining(chained indexing/assignment、あるいはhidden chaining)、mutatingといった処理は極力使わない。
 
 <details><summary><h3>Entire Directory Structure</h3></summary>
 
@@ -121,14 +121,15 @@ This project is a log for the research which applies [KCI (Knowledge Complexity 
 │   └───visualize
 └───tests
 </pre>
+
 </details>
 
 <h3>data</h3>
 データレイク層、データクレンジング層、データマート層に分け、各層の中で特許データを格納するinternalと外部データを格納するexternalを分けている。
+
 - **interim**: データクレンジング層。加工に係る中間生産のデータ。
 - **raw**: データレイク層。加工前のデータ（note:tar.gzとそれを解凍したファイルを含む。）。
 - **processed**: データマート層。分析に用いる加工後のデータ。
-
 
 <h3>notebooks</h3>
 dataの3つの層に対応する次のような11のフォルダが存在する。ここで、各フォルダは半角数字2桁でindexingされ、`00_template`のようにアンダースコアを挟んでスネークケースで一意に命名される。
@@ -138,17 +139,17 @@ dataの3つの層に対応する次のような11のフォルダが存在する�
 <h4>外部データ</h4>
 特許分類のマスタのマージ等、特に計算量が多い処理を含むものについてはメモリ効率の高い処理、それ以外のものについては可読性の高い処理を行う。
 
-- notebooks/**01_external_preparation**: <br/>
-外部から読み込んだ生データを分析可能な状態にする。このフォルダに限り、データレイク層からデータマート層まで一気通貫した処理を行う。indexingはなく、スネークスケールで命名される。
+- notebooks/**01_external_preparation**: `<br/>`
+  外部から読み込んだ生データを分析可能な状態にする。このフォルダに限り、データレイク層からデータマート層まで一気通貫した処理を行う。indexingはなく、スネークスケールで命名される。
 
 <h4>データレイク層</h4>
 
-- notebooks/**02_merging_raw**: 
+- notebooks/**02_merging_raw**:
 
 <h4>データクレンジング層</h4>
 
-- notebooks/**03_cleansing_filtering**: 
-- notebooks/**04_observation**: 
+- notebooks/**03_cleansing_filtering**:
+- notebooks/**04_observation**:
 
 <h4>データマート層</h4>
 
@@ -161,10 +162,9 @@ dataの3つの層に対応する次のような11のフォルダが存在する�
 - notebooks/**11_tech_r_national_comparison**: region level で得た技術分野側の指標について、国際比較を行う。
 
 <h3>outputs</h3>
-
+noteboooksで出力された図表ごとにフォルダが作成される。
 
 <h3>src</h3>
 notebooksにおいて、共通した変数や再利用可能な関数を
-
 
 [^1]: Here is My reference

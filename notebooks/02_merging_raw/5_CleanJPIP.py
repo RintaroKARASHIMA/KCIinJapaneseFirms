@@ -2,18 +2,9 @@
 # -*- coding: utf-8 -*-
 
 #%%
-# %load 0_LoadLibraries.py
 ## Import Library
-### Processing Data
-import pandas as pd
-import numpy as np
-
-
-### Visualization
-from IPython.display import display
-
-### Set Visualization Parameters
-pd.options.display.float_format = "{:.3f}".format
+%run ../../src/initialize/load_libraries.py
+%run 0_LoadLibraries.py
 
 ## Initialize Global Variables
 global DATA_DIR, OUTPUT_DIR
@@ -29,7 +20,7 @@ needed_col_dict = {
                                             ]
                    }
 
-original_df_dict = {file: pd.read_csv(data_dir + file, 
+original_df_dict = {file: pd.read_csv(DATA_DIR + file, 
                                        sep='\t', 
                                        encoding='utf-8', 
                                        dtype=str, 

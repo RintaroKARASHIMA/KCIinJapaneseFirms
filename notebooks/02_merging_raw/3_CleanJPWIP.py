@@ -1,26 +1,12 @@
 #! (root)/notebooks/02_merging_raw/3_CleanJPWIP.py python3
 # -*- coding: utf-8 -*-
 
-
-# %load 0_LoadLibraries.py
 ## Import Library
+%run ../../src/initialize/load_libraries.py
+%run 0_LoadLibraries.py
+
 ### Processing Data
-import sys
 from glob import glob
-import pandas as pd
-import numpy as np
-
-
-### Visualization
-from IPython.display import display
-
-### Set Visualization Parameters
-pd.options.display.float_format = "{:.3f}".format
-
-## Import Original Modules
-sys.path.append("../../src")
-from process import weight
-from visualize import rank as vr
 
 ## Initialize Global Variables
 global DATA_DIR, OUTPUT_DIR

@@ -2,19 +2,12 @@
 # -*- coding: utf-8 -*-
 
 #%%
-# %load 0_LoadLibraries.py
 ## Import Library
+%run ../../src/initialize/load_libraries.py
+%run 0_LoadLibraries.py
+
 ### Processing Data
 from glob import glob
-import pandas as pd
-import numpy as np
-
-
-### Visualization
-from IPython.display import display
-
-### Set Visualization Parameters
-pd.options.display.float_format = "{:.3f}".format
 
 ## Initialize Global Variables
 global DATA_DIR, OUTPUT_DIR

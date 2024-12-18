@@ -21,6 +21,8 @@ APPLICANT_WEIGHT = 'fraction'  # fraction or duplication
 EXTRACT_POPULATION = 'all'  # all or sep_year
 TOP_P_OR_NUM = ('p', 3)  # (p or num, int)
 
+PERIOD_ORDER_DICT = {f'{YEAR_START}-{YEAR_START+YEAR_RANGE-1}': i for i, YEAR_START in enumerate(range(YEAR_START, YEAR_END+1, YEAR_RANGE))} 
+PERIOD_ORDER_DICT[f'{YEAR_START}-{YEAR_END}'] = len(PERIOD_ORDER_DICT)
 
 
 COLOR_LIST = [

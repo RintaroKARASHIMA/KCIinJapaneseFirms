@@ -2,122 +2,182 @@
 # -*- coding: utf-8 -*-
 
 # %%
-# %load 0_LoadLibraries.py
-## Import Library
-### Processing Data
-import sys
-import pandas as pd
-import numpy as np
+# Import Library
+%run ../../src/load_libraries.py
+%run 0_LoadLibraries.py
 
-### Visualization
-from IPython.display import display
-
-### Third Party
-from ecomplexity import ecomplexity
-
-### Set Visualization Parameters
-pd.options.display.float_format = '{:.3f}'.format
-
-## Import Original Modules
-sys.path.append('../../src')
-import initial_condition
-from process import weight
+# Processing Data
 from visualize import rank as vr
 
-### Import Initial Conditions
-ar = initial_condition.AR
-year_style = initial_condition.YEAR_STYLE
+# Visualization
 
-year_start = initial_condition.YEAR_START
-year_end = initial_condition.YEAR_END
-year_range = initial_condition.YEAR_RANGE
-year_range = 5
+# Third Party
+from ecomplexity import ecomplexity
 
-extract_population = initial_condition.EXTRACT_POPULATION
-top_p_or_num = initial_condition.TOP_P_OR_NUM
-region_corporation = initial_condition.REGION_CORPORATION
-applicant_weight = initial_condition.APPLICANT_WEIGHT
+# Set Visualization Parameters
+pd.options.display.float_format = '{:.3f}'.format
 
-classification = initial_condition.CLASSIFICATION
-class_weight = initial_condition.CLASS_WEIGHT
+# Import Original Modules
+sys.path.append('../../src')
+# from process import weight
 
-## Initialize Global Variables
+# Import Initial Conditions
+%run ../../src/initial_conditions.py
+
+# Initialize Global Variables
 global DATA_DIR, OUTPUT_DIR, EX_DIR
-DATA_DIR = '../../data/interim/internal/filtered_after_agg/'
+DATA_DIR = '../../data/processed/internal/filtered_after_agg/'
 OUTPUT_DIR = '../../data/processed/internal/'
 EX_DIR = '../../data/processed/external/schmoch/'
 
-## Initialize Input and Output Conditions
+# Initialize Input and Output Conditions
 input_condition = f'{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
 output_condition = f'{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
 
-### Check the condition
+# Check the condition
 print(input_condition)
 print(output_condition)
 
 
 # %%
-# Load Data
-df = pd.read_csv(
-    DATA_DIR + f'{input_condition}.csv', 
-    encoding='utf-8', 
-    engine='python', 
-    sep=','
+def kh_ki(c_df, classification, n=19):
+    kh1_ki1_df = pd.merge(
+        c_df.copy(),
+        c_df[c_df["mcp"] == 1]
+        .groupby([region_corporation])[["ubiquity"]]
+        .sum()
+        .reset_index(drop=False)
+        .copy()
+        .rename(columns={"ubiquity": "kh_1"}),
+        on=[region_corporation],
+        how="left",
+    )
+    kh1_ki1_df = pd.merge(
+        kh1_ki1_df.copy(),
+        c_df[c_df["mcp"] == 1]
+        .groupby([classification])[["diversity"]]
+        .sum()
+        .reset_index(drop=False)
+        .copy()
+        .rename(columns={"diversity": "ki_1"}),
+        on=[classification],
+        how="left",
+    )
+    kh1_ki1_df["kh_1"] = kh1_ki1_df["kh_1"] / kh1_ki1_df["diversity"]
+    kh1_ki1_df["ki_1"] = kh1_ki1_df["ki_1"] / kh1_ki1_df["ubiquity"]
+    kh_ki_df = kh1_ki1_df.copy()
+    for i in range(n):
+        kh_ki_df = pd.merge(
+            kh_ki_df,
+            kh_ki_df[kh_ki_df["mcp"] == 1]
+            .groupby([region_corporation])[[f"ki_{i+1}"]]
+            .sum()
+            .reset_index(drop=False)
+            .copy()
+            .rename(columns={f"ki_{i+1}": f"kh_{i+2}"}),
+            on=[region_corporation],
+            how="left",
+            copy=False,
+        )
+        kh_ki_df = pd.merge(
+            kh_ki_df,
+            kh_ki_df[kh_ki_df["mcp"] == 1]
+            .groupby([classification])[[f"kh_{i+1}"]]
+            .sum()
+            .reset_index(drop=False)
+            .copy()
+            .rename(columns={f"kh_{i+1}": f"ki_{i+2}"}),
+            on=[classification],
+            how="left",
+            copy=False,
+        )
+        kh_ki_df[f"kh_{i+2}"] = kh_ki_df[f"kh_{i+2}"] / kh_ki_df["diversity"]
+        kh_ki_df[f"ki_{i+2}"] = kh_ki_df[f"ki_{i+2}"] / kh_ki_df["ubiquity"]
+    return kh_ki_df
+
+
+# %%
+schmoch_df = pd.read_csv(
+    f"{EX_DIR}35.csv",
+    encoding="utf-8",
+    sep=",",
+    #  usecols=['Field_number', 'Field_en']
+).drop_duplicates()
+
+reg_num_top_df = pd.read_csv(
+    f"{DATA_DIR}{input_condition}.csv", encoding="utf-8", sep=","
 )
-display(df)
+print(reg_num_top_df[region_corporation].nunique())
 
-#%%
+# %%
+trade_cols = {
+    "time": f"{ar}_{year_style}_period",
+    "loc": region_corporation,
+    "prod": classification,
+    "val": "reg_num",
+}
+rename_col_dict = {"eci": "kci", "pci": "tci"}
+col_order_list = [
+    f"{ar}_{year_style}_period",
+    region_corporation,
+    classification,
+    "reg_num",
+    "rca",
+    "mcp",
+    "diversity",
+    "ubiquity",
+    "kci",
+    "tci",
+]
+
+c_df = ecomplexity(reg_num_top_df, cols_input=trade_cols, rca_mcp_threshold=1)
+# prox_df = proximity(c_df, trade_cols)
+# c_out_df = c_df.copy()
+print(c_df.columns)
+
+c_df = c_df[c_df["reg_num"] > 0].rename(
+    columns=rename_col_dict)[col_order_list]
+c_df = pd.concat(
+    [
+        kh_ki(c_df[c_df[f"{ar}_{year_style}_period"]
+              == period], classification)
+        for period in c_df[f"{ar}_{year_style}_period"].unique()
+    ],
+    axis="index",
+    ignore_index=True,
+)
+# %%
 # 各期間
-classification_df = pd.merge(c_df.groupby([f'{ar}_{year_style}_period', classification])[['reg_num']].sum().reset_index(drop=False), 
-                        c_df.groupby([f'{ar}_{year_style}_period', classification])[[region_corporation]].nunique().reset_index(drop=False), 
-                        on=[f'{ar}_{year_style}_period', classification], 
-                        how='inner')
-classification_df = pd.merge(classification_df, 
-                      c_df[[f'{ar}_{year_style}_period', classification, 'ubiquity', 'tci']\
-                          +[f'ki_{i}' for i in range(1, 20+1)]]\
-                          .drop_duplicates(keep='first'), 
-                      on=[f'{ar}_{year_style}_period', classification], 
-                      how='inner')
-
-# classification_df['reg_num'] = classification_df['reg_num'].astype(np.int64)
-classification_df = pd.merge(classification_df, 
-                            schmoch_df.rename(columns={'Field_number':classification}), 
-                            on=[classification], 
-                            how='inner')\
-                            .drop(columns=[classification])\
-                            .rename(columns={'Field_en':classification})
-# display(classification_df)
-# schmoch_df['ipc3'] = schmoch_df['IPC_code'].str[:3]
-# schmoch_df = schmoch_df.drop_duplicates()
-# schmoch_df
-# classification_df = pd.merge(classification_df,
-#                                 schmoch_df,
-#                                 # on=['ipc3'],
-#                                 on=['schmoch35'],
-#                                 how='left')\
-#                             .rename(columns={'Field_en':'schmoch35'})\
-#                             .drop(columns=['IPC_code', 'Field_number'])\
-#                             .drop_duplicates()
-# for period in classification_df[f'{ar}_{year_style}_period'].unique():
-#     classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'] = (classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'] - classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'].min()) / (classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'].max() - classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'].min())
-
+classification_df = pd.merge(c_df.groupby([f'{ar}_{year_style}_period', classification])[['reg_num']].sum().reset_index(drop=False),
+                             c_df.groupby([f'{ar}_{year_style}_period', classification])[
+    [region_corporation]].nunique().reset_index(drop=False),
+    on=[f'{ar}_{year_style}_period', classification],
+    how='inner')
+classification_df = pd.merge(classification_df,
+                             c_df[[f'{ar}_{year_style}_period', classification, 'ubiquity', 'tci']
+                                  + [f'ki_{i}' for i in range(1, 20+1)]]
+                             .drop_duplicates(keep='first'),
+                             on=[f'{ar}_{year_style}_period', classification],
+                             how='inner')
 
 fiveyears_df_dict = {
-    f'{year}': classification_df[classification_df[f'{ar}_{year_style}_period']==f'{year}'][[f'{ar}_{year_style}_period', classification, 'tci']].drop_duplicates(keep='first')\
-        for year in classification_df[f'{ar}_{year_style}_period'].unique() if year != f'{year_start}-{year_end}'
+    f'{year}': classification_df[classification_df[f'{ar}_{year_style}_period'] == f'{year}'][[f'{ar}_{year_style}_period', classification, 'tci']].drop_duplicates(keep='first')
+    for year in classification_df[f'{ar}_{year_style}_period'].unique() if year != f'{year_start}-{year_end}'
 }
 
-rank.rank_doubleaxis(fiveyears_df_dict, 
-                     rank_num=35, 
+rank.rank_doubleaxis(fiveyears_df_dict,
+                     rank_num=124,
                      member_col=classification,
                      value_col='tci',
                      prop_dict={
-                                "figsize": (16, 10),
-                                "xlabel": "Period",
-                                "ylabel": "Technological Fields",
-                                "title": "",
-                                "fontsize": 15,
-                                "year_range": 15,
-                                "ascending": False,
-                                "color": "default",
-    })
+                         "figsize": (16, 16),
+                         "xlabel": "Period",
+                         "ylabel": "Technological Fields",
+                         "title": "",
+                         "fontsize": 15,
+                         "year_range": 15,
+                         "ascending": False,
+                         "color": "default",
+                     })
+
+# %%

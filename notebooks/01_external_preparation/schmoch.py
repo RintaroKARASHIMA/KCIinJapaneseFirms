@@ -9,7 +9,7 @@ from googletrans import Translator
 
 # %%
 global data_dir, output_dir
-data_dir = "../../data/original/external/schmoch/"
+data_dir = "../../data/raw/external/schmoch/"
 output_dir = "../../data/processed/external/schmoch/"
 
 
@@ -66,6 +66,8 @@ schmoch5_dict = {
     "Machine tools": "Mechanical engineering, machinery",
     "Analysis of biological materials": "Instruments",
 }
+#%%
+len(schmoch5_dict.values())
 
 # %%
 df_5 = df_35.copy()
