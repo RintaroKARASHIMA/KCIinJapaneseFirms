@@ -1,23 +1,20 @@
+#! (root)/notebooks/05_calculation/2_Complexity.py python3
+# -*- coding: utf-8 -*-
+
+import sys
+sys.path.append('../../src')
+from initialize.load_libraries import *
+
 ## Import Library
 ### Processing Data
-import sys
-import pandas as pd
-import numpy as np
-
 ### Visualization
-from IPython.display import display
-
 ### Third Party
-from ecomplexity import ecomplexity
 
 ### Set Visualization Parameters
-pd.options.display.float_format = "{:.3f}".format
 
 ## Import Original Modules
-sys.path.append("../../src")
 from initialize import initial_conditions
 from calculation import weight
-from visualize import rank as vr
 
 ### Initialize Conditions
 ar = initial_conditions.AR
@@ -36,14 +33,14 @@ classification = initial_conditions.CLASSIFICATION
 class_weight = initial_conditions.CLASS_WEIGHT
 
 ## Initialize Global Variables
-global DATA_DIR, OUTPUT_DIR, EX_DIR
-DATA_DIR = "../../data/interim/internal/filtered_after_agg/"
-OUTPUT_DIR = "../../data/processed/internal/"
-EX_DIR = "../../data/processed/external/schmoch/"
+data_dir = '../../data/interim/internal/filtered_after_agg/'
+outputs_dir = '../../data/processed/internal/'
+ex_dir = '../../data/processed/external/'
 
 ## Initialize Input and Output Conditions
-input_condition = f"{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}"
-output_condition = f"{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}"
+input_condition = f'{ar}_{year_style}_{year_start}_{year_end}_{year_range}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
+output_condition = f'{ar}_{year_style}_{year_start}_{year_end}_{year_range}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
+filter_condition = f'{ar}_{year_style}_{extract_population}_reg_num_top_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}'
 
 ### Check the condition
 print(input_condition)

@@ -49,10 +49,10 @@ classification = initial_conditions.CLASSIFICATION
 class_weight = initial_conditions.CLASS_WEIGHT
 
 ## Initialize Global Variables
-global DATA_DIR, OUTPUT_DIR, EX_DIR
-DATA_DIR = "../../data/interim/internal/filtered_after_agg/"
-OUTPUT_DIR = "../../data/processed/internal/"
-EX_DIR = "../../data/processed/external/schmoch/"
+global data_dir, outputs_dir
+# DATA_DIR = "../../data/interim/internal/filtered_after_agg/"
+data_dir = "../../data/processed/internal"
+outputs_dir = "../../outputs/figures"
 
 ## Initialize Input and Output Conditions
 input_condition = f"{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}"

@@ -1,4 +1,5 @@
-# src/variable.py
+#! (root)/src/initialize/initial_conditions.py python3
+# -*- coding: utf-8 -*-
 
 
 ## 初期条件
@@ -7,7 +8,7 @@ YEAR_STYLE = 'nendo'  # nendo or year
 
 YEAR_START = 1981  # int
 YEAR_END = 2010  # int
-YEAR_RANGE = 10  # int
+YEAR_RANGE = 5  # int
 
 COUNTRY = 'JP'  # JP or EU
 
@@ -24,37 +25,6 @@ TOP_P_OR_NUM = ('p', 3)  # (p or num, int)
 PERIOD_ORDER_DICT = {f'{YEAR_START}-{YEAR_START+YEAR_RANGE-1}': i for i, YEAR_START in enumerate(range(YEAR_START, YEAR_END+1, YEAR_RANGE))} 
 PERIOD_ORDER_DICT[f'{YEAR_START}-{YEAR_END}'] = len(PERIOD_ORDER_DICT)
 
+# INITIAL_CONDITION = 
 
-COLOR_LIST = [
-    'turquoise',
-    'gold',
-    'lime',
-    'indigo',
-    'red',
-    'coral',
-    'navy',
-    'skyblue',
-    'tomato',
-    'olive',
-    'cyan',
-    'darkred',
-    'darkgreen',
-    'darkblue',
-    'darkorange',
-    'darkviolet',
-    'deeppink',
-    'firebrick',
-    'darkcyan',
-    'darkturquoise',
-    'darkslategray',
-    'darkgoldenrod',
-    'mediumblue',
-    'mediumseagreen',
-    'mediumpurple',
-    'mediumvioletred',
-    'midnightblue',
-    'saddlebrown',
-    'seagreen',
-    'sienna',
-    'steelblue',
-]
+

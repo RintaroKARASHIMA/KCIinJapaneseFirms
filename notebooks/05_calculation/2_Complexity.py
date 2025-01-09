@@ -1,11 +1,12 @@
-# Calculate Complexity
+#! (root)/notebooks/05_calculation/2_Complexity.py python3
+# -*- coding: utf-8 -*-
 
 # %%
-%run ../../src/initialize/load_libraries.py
+# %run ../../src/initialize/load_libraries.py
 %run 0_LoadLibraries.py
-
 # Import Libraries
-import openpyxl
+from ecomplexity import ecomplexity
+# import openpyxl
 
 # %%
 # Import Original Modules
@@ -14,13 +15,11 @@ from calculation import method_of_reflections as mor
 # %%
 # Initialize Global Variables
 global DATA_DIR, OUTPUT_DIR, EX_DIR
-DATA_DIR = "../../data/processed/internal/filtered_after_agg/"
+DATA_DIR = "../../data/interim/internal/filtered_after_agg/"
 OUTPUT_DIR = "../../data/processed/internal/"
-EX_DIR = "../../data/processed/external/schmoch/"
-
-## Name of Input and Output Files
-input_condition = f"{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}"
-output_condition = f"{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}"
+EX_DIR = "../../data/processed/external/"
+classification = 'ipc3'
+output_dir = '../../data/processed/internal/'
 
 ## Check the condition
 print(input_condition)
@@ -28,11 +27,8 @@ print(output_condition)
 
 
 # %%
-
-
-# %%
 schmoch_df = pd.read_csv(
-    f"{EX_DIR}35.csv",
+    f"{EX_DIR}schmoch/35.csv",
     encoding="utf-8",
     sep=",",
     #  usecols=['Field_number', 'Field_en']
@@ -49,6 +45,8 @@ print(reg_num_top_df[region_corporation].nunique())
 # ).query(f"right_person_addr in {list(reg_num_top_df[region_corporation].unique())}")[
 #     "reg_num"
 # ].nunique()
+#%%
+reg_num_top_df
 
 # %%
 trade_cols = {
@@ -106,63 +104,7 @@ c_df = pd.concat(
 c_df2 = c_df.copy()
 display(c_df2.head())
 
-# %%
-import matplotlib.pyplot as plt
 
-plt.rcParams["font.size"] = 35
-c_df
-
-# 地区数を取得
-N = c_df[region_corporation].nunique()
-
-adj_mat = (
-    pd.pivot_table(
-        c_df2[
-            c_df2[f"{ar}_{year_style}_period"] == f"{year_start}-{year_end}"
-        ].sort_values(by=["ubiquity"], ascending=[False], ignore_index=True),
-        index=region_corporation,
-        columns=classification,
-        values="mcp",
-    )
-    .fillna(0)
-    .values
-)
-# 隣接区域以外を非表示化
-adj_mat_masked = np.ma.masked_where(adj_mat == 0, adj_mat)
-
-# 色の調整用
-w_min, w_max = 0.0, 2.0
-
-# 空間隣接行列を作図
-fig, ax = plt.subplots(
-    nrows=1,
-    ncols=1,
-    constrained_layout=True,
-    figsize=(10, 10),
-    dpi=100,
-    facecolor="white",
-)
-ax.pcolor(adj_mat_masked, cmap="grey", vmin=w_min, vmax=w_max)  # 行列
-# ax.set_xticks(ticks=np.arange(N)+0.5)
-# ax.set_xticklabels(labels=gdf_target.city2, size=9, rotation=90)
-# ax.set_yticks(ticks=np.arange(N)+0.5)
-# ax.set_yticklabels(labels=gdf_target.city2, size=9)
-# ax.invert_yaxis() # 軸の反転
-ax.set_ylabel("Corporations ($N=1938$)")
-ax.set_xlabel("Schmoch Technological Fields ($N=35$)")
-# ax.set_title(f'Osaka: $N = {len(gdf_target)}$', loc='left')
-# fig.suptitle('spatial adjacency matrix', fontsize=20)
-ax.grid()
-# ax.set_aspect('equal', adjustable='box')
-# fig.savefig(
-#     f"{output_dir}adjacency_matrix_{output_condition}.png",
-#     bbox_inches="tight",
-#     pad_inches=0.1,
-# )
-plt.show()
-from matplotlib import colormaps
-
-list(colormaps)
 
 # %%
 
@@ -199,7 +141,7 @@ right_person_df = pd.merge(
 # right_person_df['reg_num'] = right_person_df['reg_num'].astype(np.int64)
 
 right_person_df.to_csv(
-    f"{output_dir}corporations/{output_condition}.csv",
+    f"{output_dir}05_2_3_corporations/{output_condition}.csv",
     encoding="utf-8",
     sep=",",
     index=False,
@@ -230,7 +172,19 @@ classification_df = pd.merge(
     on=[f"{ar}_{year_style}_period", classification],
     how="inner",
 )
-display(classification_df)
+
+schmoch_df['ipc3'] = schmoch_df['IPC_code'].str[:3]
+classification_df = pd.merge(classification_df, schmoch_df.drop(columns=['IPC_code', 'Field_number']), 
+                             on='ipc3', 
+                             how='left')
+classification_df.to_csv(
+    f"{output_dir}05_2_4_tech/{output_condition}.csv",
+    encoding="utf-8",
+    sep=",",
+    index=False,
+)
+
+#%%
 
 #%%
 
@@ -257,42 +211,6 @@ display(classification_df)
 #     classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'] = (classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'] - classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'].min()) / (classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'].max() - classification_df[classification_df[f'{ar}_{year_style}_period']==period]['tci'].min())
 
 
-fiveyears_df_dict = {
-    f"{year}": classification_df[
-        classification_df[f"{ar}_{year_style}_period"] == f"{year}"
-    ][[f"{ar}_{year_style}_period", classification, "tci"]].drop_duplicates(
-        keep="first"
-    )
-    for year in classification_df[f"{ar}_{year_style}_period"].unique()
-    if year != f"{year_start}-{year_end}"
-}
-
-rank.rank_doubleaxis(
-    fiveyears_df_dict,
-    rank_num=124,
-    member_col=classification,
-    value_col="tci",
-    prop_dict={
-        "figsize": (16, 10),
-        "xlabel": "Period",
-        "ylabel": "Technological Fields",
-        "title": "",
-        "fontsize": 15,
-        "year_range": 15,
-        "ascending": False,
-        "color": "default",
-    },
-)
-
-classification_df.to_csv(
-    f"{output_dir}tech/{output_condition}.csv", encoding="utf-8", sep=",", index=False
-)
-# classification_df[classification_df[f'{ar}_{year_style}_period']==f'{year_start}-{year_end}']\
-#     [['schmoch35', 'reg_num', 'ubiquity', 'tci']]\
-#     .rename(columns={'reg_num':'patent count', 'ubiquity':'degree centrality', 'tci':'TCI'})\
-#     .to_excel('../../output/tables/TCI.xlsx',
-#                          index=False,
-#                          sheet_name=output_condition)
 
 # %%
 # openpyxl.Workbook()
@@ -445,3 +363,5 @@ all_edge_df.to_csv(
 #                 sep=',',
 #                 index=False)
 # graph_df
+
+# %%

@@ -1,60 +1,23 @@
-#! (root)/notebooks/3_calculate/1_Aggregate.py python3
+#! (root)/notebooks/3_calculate/1_AggregateWeight.py python3
 # -*- coding: utf-8 -*-
 #%%
-# %load 0_LoadLibrary.py
+%run 0_LoadLibraries.py
 ## Import Library
 ### Processing Data
-import pandas as pd
-import numpy as np
-import sys
 
 ### Visualization
-from IPython.display import display
 
 ### Third Party
-from ecomplexity import ecomplexity
 
 ### Set Visualization Parameters
-pd.options.display.float_format = "{:.3f}".format
 
 ## Import Original Modules
-sys.path.append("../../src")
-import initial_condition
-from process import weight
 
-#%%
-## Initialize Global Variables
-global data_dir, filter_dir, output_dir
+## Arrange variables
+ipc_digit = 3
 data_dir = '../../data/interim/internal/filtered_before_agg/'
 filter_dir = '../../data/interim/internal/filter_after_agg/'
 output_dir = '../../data/interim/internal/filtered_after_agg/'
-
-# Initial Conditions
-ar = initial_condition.AR
-year_style = initial_condition.YEAR_STYLE
-
-year_start = initial_condition.YEAR_START
-year_end = initial_condition.YEAR_END
-year_range = initial_condition.YEAR_RANGE
-year_range = 5
-
-extract_population = initial_condition.EXTRACT_POPULATION
-top_p_or_num = initial_condition.TOP_P_OR_NUM
-top_p_or_num = ('p', 3)
-region_corporation = initial_condition.REGION_CORPORATION
-region_corporation = 'right_person_name'
-applicant_weight = initial_condition.APPLICANT_WEIGHT
-
-classification = initial_condition.CLASSIFICATION
-classification = 'ipc'
-ipc_digit = 3
-class_weight = initial_condition.CLASS_WEIGHT
-
-filter_condition = f'{ar}_{year_style}_{extract_population}_reg_num_top_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}'
-output_condition = f'{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
-
-print(filter_condition)
-print(output_condition)
 
 #%%
 # 全体
@@ -175,8 +138,10 @@ reg_num_top_df = pd.concat([all_reg_num_top_df, sep_year_reg_num_top_df],
                            axis='index', ignore_index=True)
 reg_num_top_df
 
-output_condition = f'{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
+# output_condition = f'{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
 reg_num_top_df.to_csv(f'{output_dir}{output_condition}.csv', 
                       encoding='utf-8', 
                       sep=',', 
                       index=False)
+
+# %%

@@ -117,3 +117,42 @@ for i, combi in combi_dict.items():
     plt.xticks(rotation=45)
     # plt.savefig(f'{output_dir}co_ranking/{combi[1]}_{fig_name_base}', bbox_inches="tight")
     plt.show()
+
+
+#%%
+fiveyears_df_dict = {
+    f"{year}": classification_df[
+        classification_df[f"{ar}_{year_style}_period"] == f"{year}"
+    ][[f"{ar}_{year_style}_period", classification, "tci"]].drop_duplicates(
+        keep="first"
+    )
+    for year in classification_df[f"{ar}_{year_style}_period"].unique()
+    if year != f"{year_start}-{year_end}"
+}
+
+rank.rank_doubleaxis(
+    fiveyears_df_dict,
+    rank_num=124,
+    member_col=classification,
+    value_col="tci",
+    prop_dict={
+        "figsize": (16, 10),
+        "xlabel": "Period",
+        "ylabel": "Technological Fields",
+        "title": "",
+        "fontsize": 15,
+        "year_range": 15,
+        "ascending": False,
+        "color": "default",
+    },
+)
+
+classification_df.to_csv(
+    f"{output_dir}tech/{output_condition}.csv", encoding="utf-8", sep=",", index=False
+)
+# classification_df[classification_df[f'{ar}_{year_style}_period']==f'{year_start}-{year_end}']\
+#     [['schmoch35', 'reg_num', 'ubiquity', 'tci']]\
+#     .rename(columns={'reg_num':'patent count', 'ubiquity':'degree centrality', 'tci':'TCI'})\
+#     .to_excel('../../output/tables/TCI.xlsx',
+#                          index=False,
+#                          sheet_name=output_condition)

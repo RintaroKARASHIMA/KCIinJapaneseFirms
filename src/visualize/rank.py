@@ -29,14 +29,20 @@ original_colors_list = pallet.ORIGINAL_COLORS_LIST
 lighter_colors_list = pallet.LIGHTER_COLORS_LIST
 darker_colors_list = pallet.DARKER_COLORS_LIST
 name_conv_dict = conv.NAME_CONV_DICT
-tech_colors_dict = pallet.TECH_COLORS_DICT
-
+tech_colors_dict = {
+        'Chemistry, pharmaceuticals': 'red',
+        'Electrical engineering': 'blue',
+        'Instruments': 'green', 
+        'Mechanical engineering, machinery': 'orange',
+        'Other fields': 'gray'
+    }
 
 def rank_doubleaxis(
-    df_dict: dict,
+    rank_dfs_dict: dict,
     rank_num: int = 15,
     member_col: str = "right_person_name",
     value_col: str = "reg_num",
+    color_col: str = "schmoch5",
     prop_dict: dict = {
         "figsize": (16, 10),
         "xlabel": "Segment",
@@ -45,7 +51,7 @@ def rank_doubleaxis(
         "fontsize": 15,
         "year_range": 15,
         "ascending": False,
-        "color": "default",
+        # "color": "default",
     },
 ):
     """
@@ -70,22 +76,25 @@ def rank_doubleaxis(
     plt.rcParams["font.size"] = prop_dict["fontsize"]
     plt.rcParams["font.family"] = "Meiryo"
 
-    rank_dfs_dict = df_dict.copy()
+    # rank_dfs_dict = df_dict.copy()
     segments_list = list(rank_dfs_dict.keys())
 
     for period, rank_df in rank_dfs_dict.items():
-        rank_df = rank_df[[member_col, value_col]].copy()
-        rank_df["rank"] = (
-            rank_df[value_col]
-            .rank(method="first", ascending=prop_dict["ascending"])
-            .astype(np.int64)
-        )
-        rank_df["segment"] = period
+        rank_df = rank_df.filter(items=[member_col, value_col, color_col], axis='columns')\
+                         .drop_duplicates(subset=[member_col], keep='first', ignore_index=True)\
+                         .assign(
+                             rank=lambda x: x[value_col].rank(method='first', ascending=prop_dict['ascending']).astype(np.int64),
+                             segment=period,
+                             colors=lambda x: x[color_col].map(tech_colors_dict)
+                         )\
+                         .sort_values(by=["rank"], ascending=True)
+
         # try: rank_df['segment'] = int(period[:4])
         # except ValueError: rank_df['segment'] = period
-        rank_df = rank_df.sort_values(by=["rank"], ascending=True)
-        rank_dfs_dict[period] = rank_df[[member_col, "rank", "segment"]].copy()
-    rank_df = pd.concat(list(rank_dfs_dict.values()), ignore_index=True, axis="index")
+        rank_dfs_dict[period] = rank_df[[member_col, "rank", "segment", 'colors']].copy()
+    rank_df = pd.concat(list(rank_dfs_dict.values()), ignore_index=True, axis="index")\
+                .drop_duplicates(subset=['segment', member_col], keep='first', ignore_index=True)\
+                .sort_values(by=["segment", "rank"], ascending=True)
     rank_df["segment"] = pd.Categorical(
         rank_df["segment"], categories=segments_list, ordered=True
     )
@@ -104,17 +113,20 @@ def rank_doubleaxis(
     color_list = (lighter_colors_list + original_colors_list + darker_colors_list) * (
         len(hr_list) // 60 + 1
     )
+    
 
-    hr_color_dict = {hr: "gray" for hr in rank_df[member_col].unique().tolist()}
-    for i, hr in enumerate(hr_list):
-        hr_color_dict[hr] = color_list[i]
-    if prop_dict["color"] == "default":
-        for i, hr in enumerate(hr_list):
-            hr_color_dict[hr] = color_list[i]
-    else:
-        for k, v in prop_dict["color"].items():
-            hr_color_dict[k] = v
-    hr_color_dict = {**hr_color_dict, **tech_colors_dict}
+
+    # hr_color_dict = {hr: "gray" for hr in rank_df[member_col].unique().tolist()}
+    # for i, hr in enumerate(hr_list):
+    #     hr_color_dict[hr] = color_list[i]
+    # if prop_dict["color"] == "default":
+    #     for i, hr in enumerate(hr_list):
+    #         hr_color_dict[hr] = color_list[i]
+    # else:
+    #     for k, v in prop_dict["color"].items():
+    #         hr_color_dict[k] = v
+    # hr_color_dict = {**hr_color_dict, **tech_colors_dict}
+
     # hr_color_dict = dict(zip(hr_list, color_list[:len(hr_list)]))
     # キャンバスの生成
     fig, ax = plt.subplots(
@@ -155,7 +167,7 @@ def rank_doubleaxis(
             linewidth=7,
             markersize=10,
             # color=hr_color_dict[member],
-            color=hr_color_dict[member],
+            color=rank['colors'].values[0],
             alpha=0.6,
             label=member,
         )
