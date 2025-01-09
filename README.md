@@ -5,7 +5,7 @@ This project is undergoing. Thus this README is also incompleted.
 
 <h2>About (TL;DR)</h2>
 
-This project is a log for the research which applies [KCI (Knowledge Complexity Index)](https://) to Japanese corporations.
+This project is a record for the research which applies [KCI (Knowledge Complexity Index)](https://) to Japanese corporations.
 `<br/>`**Rintaro Karashima** is the only person who conducts the research and is responsible for this project.
 
 - The directory of this project mainly consists of **four private** and **two public** folders as following.
@@ -16,11 +16,9 @@ This project is a log for the research which applies [KCI (Knowledge Complexity 
   `<br/>`(5) **src** (public):
   `<br/>`(6) tests (private):
 
-<h2>Directory Structure</h2>
-本プロジェクトディレクトリ構造の全体像と、それを構成する各フォルダ/ファイルについて、定義を示す。
-<br/>以下、`メモリ効率の高い処理`は、文字通り可読性よりもメモリ効率を優先した処理を指し、例えばpandasでは再帰代入（recursive query/function）が挙げられる。
-<br/>同様に、`可読性の高い処理`は、メモリ効率よりも可読性を優先した処理を指し、例えばpandasではquery methodとmethod chainingが挙げられる。
-<br/>なお、どちらの処理においても余計なコピーが発生しやすく可読性の低いBoolean Indexingや推奨されないchaining(chained indexing/assignment、あるいはhidden chaining)、mutatingといった処理は極力使わない。
+## Directory Structure
+
+This document defines the overall structure of the project directory and its constituent folders/files. Below, `Memory-efficient Processing` refers to processes prioritized for memory efficiency over readability, such as recursive queries/functions in pandas. Conversely, `Readable Processing` refers to processes where readability is prioritized over memory efficiency, exemplified by the query method and method chaining in pandas. Processes prone to unnecessary copies, low readability Boolean Indexing, and discouraged practices like chained indexing/assignment or hidden chaining, and mutating should be avoided whenever possible.
 
 <details><summary><h3>Entire Directory Structure</h3></summary>
 
@@ -124,47 +122,43 @@ This project is a log for the research which applies [KCI (Knowledge Complexity 
 
 </details>
 
-<h3>data</h3>
-データレイク層、データクレンジング層、データマート層に分け、各層の中で特許データを格納するinternalと外部データを格納するexternalを分けている。
+### Data
 
-- **interim**: データクレンジング層。加工に係る中間生産のデータ。
-- **raw**: データレイク層。加工前のデータ（note:tar.gzとそれを解凍したファイルを含む。）。
-- **processed**: データマート層。分析に用いる加工後のデータ。
+The data is organized into three layers: the Data Lake Layer, the Data Cleansing Layer, and the Data Mart Layer. Within each layer, internal folders store proprietary data, and external folders store data from external sources.
 
-<h3>notebooks</h3>
-dataの3つの層に対応する次のような11のフォルダが存在する。ここで、各フォルダは半角数字2桁でindexingされ、`00_template`のようにアンダースコアを挟んでスネークケースで一意に命名される。
-<br/>各フォルダを構成する最小構成要素.pyファイルは、それぞれ半角数字1桁でindexingされ、0_LoadLibraries.py`のようにキャメルケースで命名される。
-<br/>なお、`00_template`には、そのフォルダ内に共通して追加のimportが必要なlibrariesをloadする`0_LoadLibraries.py`と、.pyファイルのbaseとなる`1_Sample`が格納され、全てのフォルダはその使用に則り作成される。
+### Notebooks
 
-<h4>外部データ</h4>
-特許分類のマスタのマージ等、特に計算量が多い処理を含むものについてはメモリ効率の高い処理、それ以外のものについては可読性の高い処理を行う。
+The data layers correspond to 11 folders indexed with two-digit numbers, uniquely named in snake case with underscores, such as `00_template`. The minimal components within each folder, Python files, are indexed with single-digit numbers and named in camel case, such as `0_LoadLibraries.py`. The `00_template` folder contains a `0_LoadLibraries.py` for loading necessary libraries and a base Python file `1_Sample`, and all folders are created following this template.
 
-- notebooks/**01_external_preparation**: `<br/>`
-  外部から読み込んだ生データを分析可能な状態にする。このフォルダに限り、データレイク層からデータマート層まで一気通貫した処理を行う。indexingはなく、スネークスケールで命名される。
+#### External Data
 
-<h4>データレイク層</h4>
+Processes that involve heavy computations, such as merging master data of patent classifications, utilize memory-efficient processing. Other processes prioritize readable processing.
 
-- notebooks/**02_merging_raw**:
+#### Data Lake Layer
 
-<h4>データクレンジング層</h4>
+- notebooks/**02_merging_raw**
 
-- notebooks/**03_cleansing_filtering**:
-- notebooks/**04_observation**:
+#### Data Cleansing Layer
 
-<h4>データマート層</h4>
+- notebooks/**03_cleansing_filtering**
+- notebooks/**04_observation**
 
-- notebooks/**05_calculation**: クレンジングを施したデータをもとに各指標を計算する。ここで作成されるデータは他フォルダ行う分析の基盤となる。
-- notebooks/**06_producer_long**: `05_calculation`で得た生産者(corporations or regions)側について、指標間の相関分析など長期間分析を行う。
-- notebooks/**07_tech_long**: `06_producer_long`と同様に、技術分野側について指標間の相関分析など長期間分析を行う。
-- notebooks/**08_producer_sep**: `06_producer_long`で行った長期間分析について、期間を区切って行い、変化や推移を見る。
-- notebooks/**09_tech_sep**: `07_tech_long`で行った長期間分析を期間を区切って行い、変化や推移を見る。
-- notebooks/**10_network_long**: 長期間分析で対象となったネットワークの構造について解析する。
-- notebooks/**11_tech_r_national_comparison**: region level で得た技術分野側の指標について、国際比較を行う。
+#### Data Mart Layer
 
-<h3>outputs</h3>
-noteboooksで出力された図表ごとにフォルダが作成される。
+- notebooks/**05_calculation**: Calculates various metrics based on the cleansed data, serving as the foundation for analysis in other folders.
+- notebooks/**06_producer_long**: Conducts long-term analysis of correlations among metrics from the producers' (corporations or regions) side.
+- notebooks/**07_tech_long**: Similar to `06_producer_long`, conducts long-term analysis on the technology side.
+- notebooks/**08_producer_sep**: Analyzes changes and trends over separate periods based on the long-term analysis conducted in `06_producer_long`.
+- notebooks/**09_tech_sep**: Analyzes changes and trends over separate periods based on the long-term analysis conducted in `07_tech_long`.
+- notebooks/**10_network_long**: Analyzes the structure of networks targeted in the long-term analysis.
+- notebooks/**11_tech_r_national_comparison**: Conducts international comparisons of technology-side metrics obtained at the regional level.
 
-<h3>src</h3>
-notebooksにおいて、共通した変数や再利用可能な関数を
+### Outputs
+
+Folders are created for each diagram and table outputted from the notebooks.
+
+### Src
+
+Common variables and reusable functions used in notebooks are managed as modules.
 
 [^1]: Here is My reference
