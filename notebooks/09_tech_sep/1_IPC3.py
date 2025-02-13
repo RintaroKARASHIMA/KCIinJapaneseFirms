@@ -38,12 +38,11 @@ print(output_condition)
 
 # %%
 df = pd.read_csv(
-                 DATA_DIR+input_condition+'.csv',
+                 '../../data/processed/internal/05_2_4_tech/app_nendo_1981_2010_5_all_p_3_right_person_name_fraction_schmoch35_fraction.csv',
                  encoding='utf-8',
                  sep=',',
                  )
-df['schmoch5'].unique()
-
+df#['schmoch5'].unique()
 
 # %%
 # fiveyears_df_dict = {
@@ -52,7 +51,7 @@ df['schmoch5'].unique()
 # }
 fiveyears_df_dict = {
     f'{year}': df.query(f'{ar}_{year_style}_period == "{year}"')\
-                 .filter(items=[f'{ar}_{year_style}_period', 'ipc3', 'tci', 'schmoch5'], axis='columns')\
+                 .filter(items=[f'{ar}_{year_style}_period', 'ipc3', 'tci', 'schmoch5', 'Field_en'], axis='columns')\
                  .drop_duplicates(keep='first')
     for year in df[f'{ar}_{year_style}_period'].unique() if year != f'{year_start}-{year_end}'
 }
@@ -72,4 +71,6 @@ vr.rank_doubleaxis(fiveyears_df_dict,
                          "color": "default",
                      })
 
+# %%
+df.query('Field_en == "Food chemistry"')
 # %%

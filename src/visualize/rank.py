@@ -80,7 +80,7 @@ def rank_doubleaxis(
     segments_list = list(rank_dfs_dict.keys())
 
     for period, rank_df in rank_dfs_dict.items():
-        rank_df = rank_df.filter(items=[member_col, value_col, color_col], axis='columns')\
+        rank_df = rank_df.filter(items=[member_col, value_col, color_col, 'Field_en'], axis='columns')\
                          .drop_duplicates(subset=[member_col], keep='first', ignore_index=True)\
                          .assign(
                              rank=lambda x: x[value_col].rank(method='first', ascending=prop_dict['ascending']).astype(np.int64),
@@ -91,7 +91,7 @@ def rank_doubleaxis(
 
         # try: rank_df['segment'] = int(period[:4])
         # except ValueError: rank_df['segment'] = period
-        rank_dfs_dict[period] = rank_df[[member_col, "rank", "segment", 'colors']].copy()
+        rank_dfs_dict[period] = rank_df[[member_col, "rank", "segment", 'colors', 'Field_en']].copy()
     rank_df = pd.concat(list(rank_dfs_dict.values()), ignore_index=True, axis="index")\
                 .drop_duplicates(subset=['segment', member_col], keep='first', ignore_index=True)\
                 .sort_values(by=["segment", "rank"], ascending=True)
@@ -133,32 +133,17 @@ def rank_doubleaxis(
         figsize=prop_dict["figsize"], subplot_kw=dict(ylim=(0.5, 0.5 + rank_num))
     )
 
-    ax.xaxis.set_major_locator(MultipleLocator(1))
-    ax.yaxis.set_major_locator(FixedLocator(first_top_sources["rank"].to_list()))
-
-    # ax.yaxis.set_major_formatter(
-    #     FixedFormatter(
-    #         [name_conv_dict[name] for name in first_top_sources[member_col].to_list()]
-    #     )
-    # )
-    ax.yaxis.set_major_formatter(
-        FixedFormatter(first_top_sources[member_col].to_list())
-    )
-
-    # 右側の軸
-    yax2 = ax.secondary_yaxis("right")
-    yax2.yaxis.set_major_locator(FixedLocator(last_top_sources["rank"].to_list()))
-    # yax2.yaxis.set_major_formatter(
-    #     FixedFormatter(
-    #         [name_conv_dict[name] for name in last_top_sources[member_col].to_list()]
-    #     )
-    # )
-    yax2.yaxis.set_major_formatter(
-        FixedFormatter(last_top_sources[member_col].to_list())
-    )
+    plot_name = []
 
     i = 0
     for member, rank in rank_df[rank_df["rank"] <= 10000].groupby(member_col):
+        if rank['Field_en'].values[0] == 'Food chemistry' : 
+            c = rank['colors'].values[0]
+            plot_name.append(member)
+        elif rank['Field_en'].values[0] == 'Computer technology' : 
+            c = rank['colors'].values[0]
+            plot_name.append(member)
+        else: c = 'gray'
         ax.plot(
             "segment",
             "rank",
@@ -167,11 +152,39 @@ def rank_doubleaxis(
             linewidth=7,
             markersize=10,
             # color=hr_color_dict[member],
-            color=rank['colors'].values[0],
+            # color=rank['colors'].values[0],
+            color=c,
             alpha=0.6,
             label=member,
         )
+        print(plot_name)
+    ax.xaxis.set_major_locator(MultipleLocator(1))
+    ax.yaxis.set_major_locator(FixedLocator(first_top_sources["rank"].to_list()))
+    # ax.yaxis.set_major_locator(FixedFormatter([m if m in plot_name else '' for m in first_top_sources[member_col].to_list()]))
 
+    # ax.yaxis.set_major_formatter(
+    #     FixedFormatter(
+    #         [name_conv_dict[name] for name in first_top_sources[member_col].to_list()]
+    #     )
+    # )
+    ax.yaxis.set_major_formatter(
+        FixedFormatter(first_top_sources[member_col].to_list())
+        # FixedFormatter([m if m in plot_name else '' for m in first_top_sources[member_col].to_list()])
+    )
+
+    # 右側の軸
+    yax2 = ax.secondary_yaxis("right")
+    yax2.yaxis.set_major_locator(FixedLocator(last_top_sources["rank"].to_list()))
+    # yax2.yaxis.set_major_locator(FixedLocator([m if m in plot_name else '' for m in last_top_sources[member_col].to_list()]))
+    # yax2.yaxis.set_major_formatter(
+    #     FixedFormatter(
+    #         [name_conv_dict[name] for name in last_top_sources[member_col].to_list()]
+    #     )
+    # )
+    yax2.yaxis.set_major_formatter(
+        FixedFormatter(last_top_sources[member_col].to_list())
+        # FixedLocator([m if m in plot_name else '' for m in last_top_sources[member_col].to_list()])
+    )
     # 降順で描画しようね
     ax.invert_yaxis()
 
