@@ -13,7 +13,7 @@ YEAR_RANGE = 5  # int
 COUNTRY = 'JP'  # JP or EU
 
 REGION_CORPORATION = 'right_person_name' # right_person_name or right_person_addr
-CLASSIFICATION = 'schmoch35'  # ipc3 or ipc4 or schmoch
+CLASSIFICATION = 'ipc3'  # ipc3 or ipc4 or schmoch
 VALUE = 'reg_num'
 CLASS_WEIGHT = 'fraction'  # fraction or duplication
 APPLICANT_WEIGHT = 'fraction'  # fraction or duplication

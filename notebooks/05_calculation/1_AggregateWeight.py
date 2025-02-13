@@ -106,6 +106,7 @@ for period, sep_year_reg_num_df in sep_year_reg_num_df_dict.items():
 sep_year_reg_num_df = pd.concat([sep_year_reg_num_df for sep_year_reg_num_df in sep_year_reg_num_df_dict.values()], axis='index', ignore_index=True)
 sep_year_reg_num_df
 
+
 #%%
 # フィルタリング
 reg_num_filter_df = pd.read_csv(f'{filter_dir}{filter_condition}.csv',
@@ -115,6 +116,10 @@ reg_num_filter_df = pd.read_csv(f'{filter_dir}{filter_condition}.csv',
                                 dtype=str)
 reg_num_filter_df
 
+#%%
+
+#%%
+all_df[all_df['right_person_name'].isin(reg_num_filter_df[region_corporation])]
 #%%
 
 if extract_population == 'all':
@@ -136,7 +141,7 @@ sep_year_reg_num_top_df
 #%%
 reg_num_top_df = pd.concat([all_reg_num_top_df, sep_year_reg_num_top_df], 
                            axis='index', ignore_index=True)
-reg_num_top_df
+display(reg_num_top_df)
 
 # output_condition = f'{ar}_{year_style}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
 reg_num_top_df.to_csv(f'{output_dir}{output_condition}.csv', 

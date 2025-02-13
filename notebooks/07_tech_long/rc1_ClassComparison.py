@@ -5,18 +5,18 @@
 %run ../../src/initialize/load_libraries.py
 %run 0_LoadLibraries.py
 from scipy.stats import wilcoxon
-DATA_DIR = '../../data/processed/internal/tech_comparison/'
+DATA_DIR = '../../data/processed/internal/05_2_7_tech_comparison/'
 
 # %%
 path_list = glob(DATA_DIR + '/*')
 name_df = pd.read_csv(path_list[0],
                       encoding='utf-8',
                       sep=',')\
-            .sort_values('schmoch35_tci', ascending=False)
+            .sort_values('schmoch35_tci', ascending=True)
 addr_df = pd.read_csv(path_list[1],
                       encoding='utf-8',
                       sep=',')\
-            .sort_values('schmoch35_tci', ascending=False)
+            .sort_values('schmoch35_tci', ascending=True)
 
 
 tech_color = {
@@ -28,6 +28,7 @@ tech_color = {
 }
 
 # %%
+## Scatter plot
 fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, 
                                figsize=(15, 15), 
                                sharey=True)
@@ -169,6 +170,7 @@ fig.legend([_ for i, _ in enumerate(lines) if i != 2],
 plt.show()
 
 # %%
+## 
 name_df['tci_abs'] = abs(name_df['schmoch35_tci'] - name_df['ipc3_tci'])
 addr_df['tci_abs'] = abs(addr_df['schmoch35_tci'] - addr_df['ipc3_tci'])
 name_df['schmoch35-ipc3'] = name_df['schmoch35'] + '-' + name_df['ipc3']
@@ -176,9 +178,7 @@ addr_df['schmoch35-ipc3'] = addr_df['schmoch35'] + '-' + addr_df['ipc3']
 name_addr_df = pd.merge(name_df[['schmoch35-ipc3', 'tci_abs']].rename(columns={'tci_abs':'tci_abs_name'}), addr_df[['schmoch35-ipc3', 'tci_abs']].rename(columns={'tci_abs':'tci_abs_addr'}), on='schmoch35-ipc3', how='inner')
 statistic, p_value = wilcoxon(name_addr_df['tci_abs_name'], name_addr_df['tci_abs_addr'])
 print(statistic, p_value)
-
-#%%
-name_addr_df
+display(name_addr_df)
 
 #%%
 fig, ax = plt.subplots(figsize=(11, 6))
@@ -235,7 +235,7 @@ fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1,
                                figsize=(15, 15), 
                                sharey=True)
 
-ax1.scatter(
+ax2.scatter(
             x='schmoch35', y='schmoch35_tci',
             data=name_df, 
             color='black', 
@@ -243,7 +243,7 @@ ax1.scatter(
             s=100,
             label='Schmoch（N=35）'
             )
-ax1.scatter(
+ax2.scatter(
             x='schmoch35', y='ipc3_tci',
             data=name_df, 
             color='red', 
@@ -252,7 +252,7 @@ ax1.scatter(
             s=200,
             label='IPC Class（N=124）'
             )
-ax1.set_ylabel(
+ax2.set_ylabel(
                'Corporate TCI', 
                fontsize=24, 
                fontweight='bold'
@@ -273,15 +273,15 @@ ax1.grid(
          )
 
 
-ax2.set_ylabel(
+ax1.set_ylabel(
               'Regional TCI', fontsize=24, fontweight='bold'
               )
-ax2.grid(
+ax1.grid(
         True, linestyle='--', which='major', axis='x'
         )
 # ax2.legend(loc='upper left', fontsize=15, prop={'weight': 'bold'},bbox_to_anchor=(1.05, 0.5), borderaxespad=0)
 
-ax2.scatter(
+ax1.scatter(
             x='schmoch35', y='schmoch35_tci', 
             data=addr_df,
             color='black', 
@@ -289,7 +289,7 @@ ax2.scatter(
             s=100,
             label='Schmoch（N=35）'
             )
-ax2.scatter(
+ax1.scatter(
             x='schmoch35', y='ipc3_tci',
             data=addr_df,
             color='blue', 
@@ -422,3 +422,4 @@ ax1.grid(True, linestyle='--', which='major', axis='x')
 ax2.grid(True, linestyle='--', which='major', axis='x')
 # ax.xaxis.tick_top()#x軸を上側に
 # ax.xaxis.set_label_position('top')#x軸ラベルを上側に
+
