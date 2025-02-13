@@ -1,7 +1,7 @@
 <h1>KCIinJapaneseFirms</h1>
 
 This project is undergoing. Thus this README is also incompleted.
-`<br/>`日本語版（未完成）は[こちら](https://github.com/RintaroKARASHIMA/KCIinJapaneseFirms/blob/master/README_jp.md)から
+`<br/>`日本語版（未完成）は[こちら](https://github.com/RintaroKARASHIMA/KCIinJapaneseFirms/blob/master/README_ja.md)から
 
 <h2>About (TL;DR)</h2>
 
