@@ -1,24 +1,35 @@
 <h1>KCIinJapaneseFirms</h1>
 
 This project is undergoing. Thus this README is also incompleted.
-`<br/>`日本語版（未完成）は[こちら](https://github.com/RintaroKARASHIMA/KCIinJapaneseFirms/blob/master/README_ja.md)から
+<br/>
+日本語版（未完成）は[こちら](https://github.com/RintaroKARASHIMA/KCIinJapaneseFirms/blob/master/README_ja.md)から
 
 <h2>About (TL;DR)</h2>
 
 This project is a record for the research which applies [KCI (Knowledge Complexity Index)](https://) to Japanese corporations.
-`<br/>`**Rintaro Karashima** is the only person who conducts the research and is responsible for this project.
+<br/>
+**Rintaro Karashima** is the only person who is responsible for this project.
 
-- The directory of this project mainly consists of **four private** and **two public** folders as following.
-  `<br/>`(1) archive (private):
-  `<br/>`(2) data (private):
-  `<br/>`(3) **notebooks** (public):
-  `<br/>`(4) outputs (private):
-  `<br/>`(5) **src** (public):
-  `<br/>`(6) tests (private):
+- The directory of this project is mainly composed of **three private** and **three public** folders as following.
+  <br/>
+  (1) archive (private):
+  <br/>
+  (2) data (private):
+  <br/>
+  (3) **notebooks** (public):tree
+  <br/>
+  (4) **outputs** (public):
+  <br/>
+  (5) **src** (public):
+  <br/>
+  (6) tests (private):
 
 ## Directory Structure
 
-This document defines the overall structure of the project directory and its constituent folders/files. Below, `Memory-efficient Processing` refers to processes prioritized for memory efficiency over readability, such as recursive queries/functions in pandas. Conversely, `Readable Processing` refers to processes where readability is prioritized over memory efficiency, exemplified by the query method and method chaining in pandas. Processes prone to unnecessary copies, low readability Boolean Indexing, and discouraged practices like chained indexing/assignment or hidden chaining, and mutating should be avoided whenever possible.
+This document defines the overall structure of the project directory and its constituent folders/files. <br/>
+Below, `Memory-efficient Processing` refers to processes prioritized for memory efficiency over readability, such as recursive queries/functions in pandas. <br/>
+Conversely, `Readable Processing` refers to processes where readability is prioritized over memory efficiency, exemplified by the query method and method chaining in pandas. <br/>
+Processes prone to unnecessary copies, low readability Boolean Indexing, and discouraged practices like chained indexing/assignment or hidden chaining, and mutating should be avoided whenever possible.
 
 <details><summary><h3>Entire Directory Structure</h3></summary>
 

@@ -10,10 +10,13 @@ KCIinJapaneseFirmsは、日本の法人が持つ複雑さと技術の複雑さ�
 
 Rintaro Karashima is the only person who is responsible for this repository.
 
-- The directory of this projects is mainly consist of **three** parts as following.
-  `<br/>`1. **data**:
-  `<br/>`2. **notebooks**:
-  `<br/>`3. **src**:
+- The directory of this projects is mainly composed of **three** parts as following.
+  <br/>
+  1. **data**:
+  <br/>
+  2. **notebooks**:
+  <br/>
+  3. **src**:
 
 <h2>ディレクトリ構成</h2>
 本プロジェクトディレクトリ構成の全体像と、それを構成する各フォルダ/ファイルについて、定義を示す。
@@ -139,7 +142,7 @@ dataの3つの層に対応する次のような11のフォルダが存在する�
 <h4>外部データ</h4>
 特許分類のマスタのマージ等、特に計算量が多い処理を含むものについてはメモリ効率の高い処理、それ以外のものについては可読性の高い処理を行う。
 
-- notebooks/**01_external_preparation**: `<br/>`
+- notebooks/**01_external_preparation**: <br/>
   外部から読み込んだ生データを分析可能な状態にする。このフォルダに限り、データレイク層からデータマート層まで一気通貫した処理を行う。indexingはなく、スネークスケールで命名される。
 
 <h4>データレイク層</h4>
