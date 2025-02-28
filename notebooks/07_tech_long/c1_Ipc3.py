@@ -7,7 +7,7 @@
 
 #%%
 global data_dir, ex_dir, output_dir
-data_dir = '../../data/processed/internal/tech/'
+data_dir = '../../data/processed/internal/05_2_4_tech/'
 ex_dir = '../../data/processed/external/'
 output_dir = '../../output/figures/'
 
@@ -25,7 +25,7 @@ jp_df = pd.read_csv(f'{data_dir}{input_condition}.csv',
 #         .drop(columns=['Field_number', classification])\
 #         .rename(columns={'Field_en': classification})\
 #         .sort_values(f'{ar}_{year_style}_period', key=lambda col: col.map(period_order_dict))
-jp_df = jp_df.sort_values(f'{ar}_{year_style}_period', key=lambda col: col.map(period_order_dict))
+# jp_df = jp_df.sort_values(f'{ar}_{year_style}_period', key=lambda col: col.map(period_order_dict))
 jp_df
 jp_df['schmoch5'] = jp_df['schmoch5'].replace('Mechanical engineering', 'Mechanical engineering, machinery')
 jp_df['schmoch5'] = jp_df['schmoch5'].replace('Chemistry', 'Chemistry, pharmaceuticals')
@@ -47,12 +47,12 @@ combi_dict = {  # ind: [x, y, title, xlabel, ylabel, legend_loc]
     # 3: ["reg_num_jp", "TCI_jp", "relation between the patent counts and the TCIs in Japan", "Patent Counts", "TCIs", "center left", ],
     # 4: ["TCI_jp", "reg_num_jp", "relation between the patent counts and the TCIs in Japan", "TCIs", "Patent Counts", "center left", ],
     # 6: ["TCI_jp", "ubiquity", "relation between the ubiquity and the TCIs in Japan", "TCIs", "Ubiquity", "center left", ],
-    7: ["ubiquity", "tci", "", "Degree centrality $k_{t, 0}$", "TCIs", "center left", ],
-    8: ["ubiquity", "ki_1", "", "Degree centrality $k_{t, 0}$", "the average nearest neighbor degree $k_{t, 1}$", "center left", ],
+    7: ["ubiquity", "tci", "", "Ubiquity $K_{T, 0}$", "TCI", "center left", ],
+    8: ["ubiquity", "ki_1", "", "Ubiquity $K_{T, 0}$", "Average Diversity $K_{T, 1}$", "center left", ],
     # 5: ["reg_num_eu", "TCI_eu", "corr between the patent amounts in EU and TCI in EU", "EU（period：1985-2009 year）", "EU（period：1985-2009 year）", "center", ],
     # 2: ["TCI_eu", "TCI_jp", "corr between the TCIs in Japan and EU", "EU（period：1985-2009 year）", "Japan（period：1981-2010 fiscal year）", "center", ],
 }
-plt.rcParams['font.size'] = 24
+plt.rcParams['font.size'] = 25
 plt.rcParams['font.family'] = 'Meiryo'
 for i, combi in combi_dict.items():
     fig, ax = plt.subplots(2, 3, sharex=True, sharey=True, figsize=(15, 10))
@@ -94,14 +94,31 @@ for i, combi in combi_dict.items():
     else:ax[1, 2].text(250, 5, f'corr={corr_num}', fontsize=20)
     
     # fig.delaxes(ax[1, 2])
-    fig.text(0.5, 0, 'Degree centrality $k_{t, 0}$', ha='center', va='center', fontsize=30)
+    fig.text(0.5, 0, combi[3], ha='center', va='center', fontsize=30)
     if i == 7:
-        fig.text(0.05, 0.5, 'TCIs', ha='center', va='center', rotation='vertical', fontsize=30)
+        fig.text(-0.05, 0.5, combi[4], ha='center', va='center', rotation='vertical', fontsize=30)
     else:
-        fig.text(0.05, 0.5, 'Average neighbor degree $k_{t, 1}$', ha='center', va='center', rotation='vertical', fontsize=30)
+        fig.text(-0.05, 0.5, combi[4], ha='center', va='center', rotation='vertical', fontsize=30)
+
+    fig2, ax2 = plt.subplots(1, 1, figsize=(10, 10))
+    ax2.scatter(jp_df[combi[0]], jp_df[combi[1]], color='black')
+    ax2.axvline(x=jp_df[combi[0]].mean(), color="gray", linestyle="--", )
+    ax2.axhline(y=jp_df[combi[1]].mean(), color="gray", linestyle="--", )
+    corr_num = round(jp_df[combi[0]].corr(jp_df[combi[1]]), 3)
+    ax2.text(400, 10, f'corr={corr_num}', fontsize=20)
+
+    ax2.set_xlabel(combi[3], fontsize=30)
+    ax2.set_ylabel(combi[4], fontsize=30)
+    if i == 8: ax2.set_ylim(0, 30)
+
+
     # ax.set_xscale('log')
     # ax.legend(loc=combi[5], fontsize=20, bbox_to_anchor=(1.05, 0.5), borderaxespad=0)
     # if i == 7: ax.legend(loc='lower right', prop={'weight': 'bold', 'size': 15}, labelspacing=1.25, borderaxespad=0, bbox_to_anchor=(1.25, 0.05))
     # fig.savefig(f'{output_dir}{fig_name_base.replace(".png", f"_{i}.eps")}', bbox_inches='tight')
     plt.show()
 
+
+# %%
+jp_df
+# %%

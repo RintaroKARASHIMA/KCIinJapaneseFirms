@@ -1,41 +1,39 @@
 #! (root)/notebooks/05_calculation/2_Complexity.py python3
 # -*- coding: utf-8 -*-
 
-# %%
-# %run ../../src/initialize/load_libraries.py
+#%%
+## Load Global Settings
+%run ../../src/initialize/load_libraries.py
+%run ../../src/initialize/initial_conditions.py
+
+## Load Local Settings
 %run 0_LoadLibraries.py
-# Import Libraries
-from ecomplexity import ecomplexity
-# import openpyxl
 
 # %%
 # Import Original Modules
 from calculation import method_of_reflections as mor
+# reload(mor)
 
 # %%
 # Initialize Global Variables
-global DATA_DIR, OUTPUT_DIR, EX_DIR
-DATA_DIR = "../../data/interim/internal/filtered_after_agg/"
-OUTPUT_DIR = "../../data/processed/internal/"
-EX_DIR = "../../data/processed/external/"
-classification = 'ipc3'
-output_dir = '../../data/processed/internal/'
+in_dir = f'{IN_IN_DIR}filtered_after_agg/'
+out_dir = f'{PRO_IN_DIR}'
+ex_dir = f'{PRO_EX_DIR}'
 
 ## Check the condition
-print(input_condition)
-print(output_condition)
+print(condition)
 
 
 # %%
 schmoch_df = pd.read_csv(
-    f"{EX_DIR}schmoch/35.csv",
+    f"{ex_dir}schmoch/35.csv",
     encoding="utf-8",
     sep=",",
     #  usecols=['Field_number', 'Field_en']
 ).drop_duplicates()
 
 reg_num_top_df = pd.read_csv(
-    f"{DATA_DIR}{input_condition}.csv", encoding="utf-8", sep=","
+    f"{in_dir}{condition}.csv", encoding="utf-8", sep=","
 )
 print(reg_num_top_df[region_corporation].nunique())
 
@@ -47,6 +45,18 @@ print(reg_num_top_df[region_corporation].nunique())
 # ].nunique()
 #%%
 reg_num_top_df
+
+#%%
+import matplotlib.pyplot as plt
+plot_df = reg_num_top_df[reg_num_top_df[f'{ar}_{year_style}_period'] == f'{year_start}-{year_end}']\
+                        [['right_person_name', 'reg_num']]\
+                        .groupby('right_person_name', as_index=False)\
+                        .sum()\
+                        .assign(
+                            reg_p = lambda x: x['reg_num']/x['reg_num'].sum()
+                        )
+plot_df['reg_p'].sum()
+
 
 # %%
 trade_cols = {
@@ -141,7 +151,7 @@ right_person_df = pd.merge(
 # right_person_df['reg_num'] = right_person_df['reg_num'].astype(np.int64)
 
 right_person_df.to_csv(
-    f"{output_dir}05_2_3_corporations/{output_condition}.csv",
+    f"{out_dir}05_2_3_corporations/{condition}.csv",
     encoding="utf-8",
     sep=",",
     index=False,
@@ -172,13 +182,23 @@ classification_df = pd.merge(
     on=[f"{ar}_{year_style}_period", classification],
     how="inner",
 )
+classification_df
+#%%
+schmoch_df
 
-schmoch_df['ipc3'] = schmoch_df['IPC_code'].str[:3]
-classification_df = pd.merge(classification_df, schmoch_df.drop(columns=['IPC_code', 'Field_number']), 
-                             on='ipc3', 
-                             how='left')
+#%%
+
+# schmoch_df['ipc3'] = schmoch_df['IPC_code'].str[:3]
+classification_df = pd.merge(classification_df, 
+                             schmoch_df.drop(columns=['IPC_code']).drop_duplicates().rename(columns={'Field_number':'schmoch35'}), 
+                             on=classification, 
+                             how='left')\
+                        .drop(columns=[classification])\
+                        .rename(columns={'Field_en':'schmoch35'})
+classification_df
+#%%
 classification_df.to_csv(
-    f"{output_dir}05_2_4_tech/{output_condition}.csv",
+    f"{out_dir}05_2_4_tech/{condition}.csv",
     encoding="utf-8",
     sep=",",
     index=False,
@@ -274,7 +294,7 @@ ps_df["tci"] = (
 )
 ps_df["node_id"] -= 1
 ps_df[["node_id", "label", "reg_num", "ubiquity", "tci", "schmoch5"]].to_csv(
-    f"{output_dir}product_space/{output_condition}_node.tsv",
+    f"{out_dir}product_space/{condition}_node.tsv",
     sep="\t",
     encoding="utf-8",
     index=False,
@@ -297,7 +317,7 @@ ps_edge_df = (
 ps_edge_df["source"] -= 1
 ps_edge_df["target"] -= 1
 ps_edge_df.to_csv(
-    f"{output_dir}product_space/{output_condition}_edge.tsv",
+    f"{out_dir}product_space/{condition}_edge.tsv",
     sep="\t",
     encoding="utf-8",
     index=False,

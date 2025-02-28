@@ -1,19 +1,21 @@
-#! (root)/notebooks/05_calculation/2_Complexity.py python3
+#! (root)/notebooks/05_calculation/0_LoadLibraries.py python3
 # -*- coding: utf-8 -*-
 
 import sys
 sys.path.append('../../src')
-from initialize.load_libraries import *
 
 ## Import Library
+### Systems
+from importlib import reload
 ### Processing Data
 ### Visualization
 ### Third Party
-
 ### Set Visualization Parameters
+
 
 ## Import Original Modules
 from initialize import initial_conditions
+reload(initial_conditions)
 from calculation import weight
 
 ### Initialize Conditions
@@ -24,24 +26,19 @@ year_start = initial_conditions.YEAR_START
 year_end = initial_conditions.YEAR_END
 year_range = initial_conditions.YEAR_RANGE
 
-extract_population = initial_conditions.EXTRACT_POPULATION
-top_p_or_num = initial_conditions.TOP_P_OR_NUM
 region_corporation = initial_conditions.REGION_CORPORATION
+classification = initial_conditions.CLASSIFICATION
+if 'ipc' in classification: digit = initial_conditions.DIGIT
+value = initial_conditions.VALUE
+class_weight = initial_conditions.CLASS_WEIGHT
 applicant_weight = initial_conditions.APPLICANT_WEIGHT
 
-classification = initial_conditions.CLASSIFICATION
-class_weight = initial_conditions.CLASS_WEIGHT
+extract_population = initial_conditions.EXTRACT_POPULATION
+top_p_or_num = initial_conditions.TOP_P_OR_NUM
 
-## Initialize Global Variables
-data_dir = '../../data/interim/internal/filtered_after_agg/'
-outputs_dir = '../../data/processed/internal/'
-ex_dir = '../../data/processed/external/'
 
 ## Initialize Input and Output Conditions
-input_condition = f'{ar}_{year_style}_{year_start}_{year_end}_{year_range}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
-output_condition = f'{ar}_{year_style}_{year_start}_{year_end}_{year_range}_{extract_population}_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}'
-filter_condition = f'{ar}_{year_style}_{extract_population}_reg_num_top_{top_p_or_num[0]}_{top_p_or_num[1]}_{region_corporation}'
+condition = initial_conditions.CONDITION
 
 ### Check the condition
-print(input_condition)
-print(output_condition)
+print(condition)

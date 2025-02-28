@@ -423,3 +423,7 @@ ax2.grid(True, linestyle='--', which='major', axis='x')
 # ax.xaxis.tick_top()#x軸を上側に
 # ax.xaxis.set_label_position('top')#x軸ラベルを上側に
 
+
+# %%
+addr_df[addr_df['schmoch35_tci']>=75]['schmoch35'].nunique()
+name_df[name_df['schmoch35_tci']>=75]['schmoch35'].nunique()

@@ -38,7 +38,7 @@ print(output_condition)
 
 # %%
 df = pd.read_csv(
-                 '../../data/processed/internal/05_2_4_tech/app_nendo_1981_2010_5_all_p_3_right_person_name_fraction_schmoch35_fraction.csv',
+                 '../../data/processed/internal/05_2_4_tech/app_nendo_1981_2010_1_all_p_3_right_person_name_fraction_schmoch35_fraction.csv',
                  encoding='utf-8',
                  sep=',',
                  )

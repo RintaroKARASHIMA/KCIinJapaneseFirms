@@ -213,10 +213,10 @@ ax_aichi.scatter(all_vs_3pref_df['pci_z'], all_vs_3pref_df['tci'], color='black'
 ax_tokyo.plot([0, 100], [0, 100], color='red', linewidth=2, linestyle='--')
 ax_osaka.plot([0, 100], [0, 100], color='red', linewidth=2, linestyle='--')
 ax_aichi.plot([0, 100], [0, 100], color='red', linewidth=2, linestyle='--')
-ax_tokyo.set_xlabel('TCI in TOKYO')
-ax_osaka.set_xlabel('TCI in OSAKA')
-ax_aichi.set_xlabel('TCI in AICHI')
-ax_tokyo.set_ylabel('TCI in JAPAN')
+ax_tokyo.set_xlabel('Corporate TCI in Tokyo')
+ax_osaka.set_xlabel('Corporate TCI in Osaka')
+ax_aichi.set_xlabel('Corporate TCI in Aichi')
+ax_tokyo.set_ylabel('Corporate TCI in Japan')
 plt.show()
 
 #%%
@@ -228,9 +228,7 @@ combi_dict = {  # ind: [x, y, title, xlabel, ylabel, legend_loc]
     # 6: ["TCI_jp", "ubiquity", "relation between the ubiquity and the TCIs in Japan", "TCIs", "Ubiquity", "center left", ],
     # 7: ["ubiquity", "tci", "", "Degree Centrality $K_{T, 0}$", "TCI", "center left", ],
     7: ["pci_x", "pci", "", "TOKYO", "OSAKA", "center left", ],
-    8: ["pci_y", "pci", "", "TOKYO", "ALL PREFECTURE", "center left", ],
-    # 7: ["pci_y", "pci", "", "TOKYO", "ALL PREFECTURE", "center left", ],
-    
+    8: ["pci_y", "pci", "", "TOKYO", "ALL PREFECTURE", "center left", ], 
 }
 df = all_c_df
 for i, combi in combi_dict.items():

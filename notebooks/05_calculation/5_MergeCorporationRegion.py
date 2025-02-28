@@ -21,4 +21,5 @@ all_df = pd.read_csv(f'{data_dir}japan.csv',
                      sep=',')
 
 #%%
-all_df['right_person_addr']
+all_df
+# %%

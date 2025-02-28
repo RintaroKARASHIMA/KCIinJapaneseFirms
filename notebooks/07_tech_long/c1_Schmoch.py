@@ -1,12 +1,15 @@
-#! (root)/notebooks/08_producer_sep/r1_Prefecture.py python3
+#! (root)/notebooks/07_tech_long/c1_Schmoch.py python3
 # -*- coding: utf-8 -*-
 
 #%%
 %run ../../src/initialize/load_libraries.py
 %run 0_LoadLibraries.py
-
+import scipy.stats as stats
+DATA_DIR = '../../data/processed/internal/05_2_4_tech/'
+EX_DIR = '../../data/processed/external/'
 #%%
 print(input_condition)
+input_condition = 'app_nendo_1981_2010_5_all_p_3_right_person_name_fraction_schmoch35_fraction'
 
 # %%
 period_order_dict = {
@@ -31,18 +34,24 @@ schmoch_df = pd.read_csv(
                          )\
                          .drop_duplicates()
 
-df = pd.merge(df, schmoch_df, 
-              left_on=classification, right_on='Field_en', 
-              how='left'
-              )\
-            .drop(columns=['Field_number', classification])\
-            .rename(columns={'Field_en': classification})\
-            .query(f'{ar}_{year_style}_period == "{year_start}-{year_end}"')\
+# df = pd.merge(df, schmoch_df, 
+#               left_on=classification, right_on='Field_en', 
+#               how='left'
+#               )\
+#             .drop(columns=['Field_number', classification])\
+#             .rename(columns={'Field_en': classification})\
+#             .query(f'{ar}_{year_style}_period == "{year_start}-{year_end}"')\
+#             .assign(
+#             tci = lambda x: ((x['tci']-x['tci'].min())/(x['tci'].max()-x['tci'].min())) * 100,
+#             )\
+#             .sort_values(by='tci', ascending=False)
+
+df = df.query(f'{ar}_{year_style}_period == "{year_start}-{year_end}"')\
+            .drop_duplicates()\
             .assign(
-            tci = lambda x: minmax_scale(x['tci']) * 100,
+            tci = lambda x: ((x['tci']-x['tci'].min())/(x['tci'].max()-x['tci'].min())) * 100,
             )\
             .sort_values(by='tci', ascending=False)
-
 display(df)
 
 # %%
@@ -114,3 +123,8 @@ for i, combi in combi_dict.items():
     # fig.savefig(f'{output_dir}{fig_name_base.replace(".png", f"_{i}.eps")}', bbox_inches='tight')
     # plt.tight_layout(pad=1.08, h_pad=1.08, w_pad=1.08)
     plt.show()
+    
+
+    
+
+# %%
