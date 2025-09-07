@@ -17,15 +17,24 @@ df = pd.read_csv('../Data/Tmp/fixed_merged.csv',
                  dtype=str)
 df.head()
 
-df['app_year_month'] = df['app_year_month_day'].str[:6]
-df['app_year'] = np.where(df['app_year_month'].str[-2:].isin(['01', '02', '03']), 
-                          df['app_year_month'].str[:4].astype(np.float64) - 1, 
-                          df['app_year_month'].str[:4].astype(np.float64))
-df['reg_year_month'] = df['set_reg_year_month_day'].str[:6]
-df['reg_year'] = np.where(df['reg_year_month'].str[-2:].isin(['01', '02', '03']), 
-                          df['reg_year_month'].str[:4].astype(np.float64) - 1, 
-                          df['reg_year_month'].str[:4].astype(np.float64))
-df = df.drop(columns=['app_year_month_day', 'set_reg_year_month_day', 'reg_year_month', 'app_year_month'])
+df = df.assign(
+    app_year_month = lambda x: x['app_year_month_day'].str[:6],
+    app_year = lambda x: np.where(
+                        x['app_year_month'].str[-2:].isin(['01', '02', '03']), 
+                        x['app_year_month'].str[:4].astype(np.float64) - 1, 
+                        x['app_year_month'].str[:4].astype(np.float64)),
+    reg_year_month = lambda x: x['set_reg_year_month_day'].str[:6],
+    reg_year = lambda x: np.where(
+                        x['reg_year_month'].str[-2:].isin(['01', '02', '03']), 
+                        x['reg_year_month'].str[:4].astype(np.float64) - 1, 
+                        x['reg_year_month'].str[:4].astype(np.float64))
+    ).drop(
+        columns=[
+            'app_year_month_day', 'set_reg_year_month_day', 
+            'reg_year_month', 'app_year_month'
+            ]
+    )
+
 df
 
 #%%

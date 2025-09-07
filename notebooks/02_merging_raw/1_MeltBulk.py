@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 
 #%%
-## Import Library
-%run ../../src/initialize/load_libraries.py
-%run 0_LoadLibraries.py
+## If necessary, Import Libraries
+# %run ../../src/initialize/load_libraries.py
+# %run 0_LoadLibraries.py
 
 ### Processing Data
 import time
@@ -12,7 +12,11 @@ from bs4 import BeautifulSoup
 import urllib.request
 import tarfile
 
-## Import Original Modules
+## If necessary, Import Original Modules
+# from initialize import initial_conditions
+# reload(initial_conditions)
+# from calculation import weight
+# from visualize import rank as vr
 
 ## Initialize Global Variables
 global DATA_DIR
@@ -74,7 +78,7 @@ def extract_data(master_name):
                         f'{DATA_DIR}bulk/{master_name}/{needed_dir}/{file_date}.tsv'
                     )
 
-                    # 誰に何と言われようと、バージョンに依存するメソッドは嫌いです。
+                    # バージョンに依存しないメソッドを使う
                     tf.extract(member, path='.')
                     # print(f'Extracted: {folder_name}/{file_name}')
             tf.close()

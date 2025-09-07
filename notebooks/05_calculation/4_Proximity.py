@@ -36,8 +36,9 @@ schmoch_df = pd.read_csv(
 ).drop_duplicates()
 
 reg_num_top_df = pd.read_csv(
-    f"{DATA_DIR}app_nendo_1981_2010_5_all_p_3_right_person_name_fraction_schmoch35_fraction.csv", encoding="utf-8", sep=","
+    f"{DATA_DIR}app_nendo_1981_2010_5_all_p_3_right_person_name_fraction_ipc3_fraction.csv", encoding="utf-8", sep=","
 )
+display(reg_num_top_df.head())
 print(reg_num_top_df[region_corporation].nunique())
 
 # %%
@@ -156,12 +157,34 @@ all_df = pd.read_csv(f'{data_dir}japan.csv',
             .query('1981 <= app_nendo <= 2010')\
             .query('right_person_addr in ("東京都", "大阪府", "愛知県")')
 all_df
+
+trade_cols = {
+    "time": f"{ar}_{year_style}_period",
+    "loc": region_corporation,
+    "prod": 'ipc3',
+    "val": "reg_num",
+}
+rename_col_dict = {"eci": "kci", "pci": "tci"}
+col_order_list = [
+    f"{ar}_{year_style}_period",
+    region_corporation,
+    'ipc3',
+    "reg_num",
+    "rca",
+    "mcp",
+    "diversity",
+    "ubiquity",
+    "kci",
+    "tci",
+]
 # %%
 all_df = all_df[all_df['right_person_name'].isin(c_df['right_person_name'].unique())]
 tokyo_df = all_df.query('right_person_addr == "東京都"')
 osaka_df = all_df.query('right_person_addr == "大阪府"')
 aichi_df = all_df.query('right_person_addr == "愛知県"')
 
+#%%
+display(reg_num_top_df.head())
 #%%
 tokyo_df['right_person_name'].nunique(), osaka_df['right_person_name'].nunique()
 #%%
@@ -175,6 +198,7 @@ aichi_c_df = ecomplexity(reg_num_top_df[reg_num_top_df['right_person_name'].isin
                         cols_input=trade_cols, rca_mcp_threshold=1)\
                         .sort_values(by=['pci'], ascending=False)
 #%%
+display(tokyo_c_df.head())
 # osaka_c_df= osaka_c_df[osaka_c_df['pci']!=osaka_c_df['pci'].min()]
 # %%
 import matplotlib.pyplot as plt
@@ -202,7 +226,8 @@ all_vs_3pref_df = pd.merge(tokyo_osaka_df,
 
          
 #%%
-osaka_c_df[osaka_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first')
+aichi_c_df[aichi_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first')
+# tokyo_c_df[tokyo_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first')
 
 #%%
 plt.rcParams['font.size'] = 25
@@ -230,7 +255,39 @@ combi_dict = {  # ind: [x, y, title, xlabel, ylabel, legend_loc]
     7: ["pci_x", "pci", "", "TOKYO", "OSAKA", "center left", ],
     8: ["pci_y", "pci", "", "TOKYO", "ALL PREFECTURE", "center left", ], 
 }
-df = all_c_df
+tokyo_aichi_df = pd.merge(
+    aichi_c_df[aichi_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first'), 
+    tokyo_c_df[tokyo_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first'), 
+    on=['ipc3'], 
+    how='inner'
+).rename(
+    columns={'pci_x':'aichi', 'pci_y':'tokyo'}
+).query('aichi not in aichi.nsmallest(2)', engine='python')\
+.assign(
+    aichi = lambda df: ((df['aichi']-df['aichi'].min())/(df['aichi'].max()-df['aichi'].min()))*100,
+    tokyo = lambda df: ((df['tokyo']-df['tokyo'].min())/(df['tokyo'].max()-df['tokyo'].min()))*100,
+)
+fig, ax = plt.subplots(figsize=(6,6))
+ax.scatter(
+    tokyo_aichi_df['aichi'], 
+    tokyo_aichi_df['tokyo'], 
+    c='black'
+)
+ax.set_aspect('equal')
+ax.set_xticks(range(0, 100+1, 20))
+ax.set_xticklabels(range(0,100+1, 20))
+ax.plot([0, 100], [0, 100], color='red', linewidth=2, linestyle='--')
+ax.set_xlabel('Corporate TCI in Aichi')
+ax.set_ylabel('Corporate TCI in Tokyo')
+plt.show()
+# display(tokyo_aichi_df)
+# display(aichi_c_df[aichi_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first')['pci'])
+# display(tokyo_c_df[tokyo_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first')['pci'])
+#%%
+tokyo_aichi_df.query('tokyo < 40')\
+    .query('aichi > tokyo').to_clipboard()
+
+#%%
 for i, combi in combi_dict.items():
     plot_df = df[[combi[0], combi[1]]].drop_duplicates()
     fig, ax = plt.subplots(figsize=(8, 8))

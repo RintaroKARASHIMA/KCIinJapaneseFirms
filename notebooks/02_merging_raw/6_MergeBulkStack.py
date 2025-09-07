@@ -2,12 +2,15 @@
 # -*- coding: utf-8 -*-
 
 #%%
-## Import Library
-%run ../../src/initialize/load_libraries.py
-%run 0_LoadLibraries.py
+## If necessary, Import Libraries
+# %run ../../src/initialize/load_libraries.py
+# %run 0_LoadLibraries.py
 
 ### Processing Data
 from glob import glob
+import pandas as pd
+import numpy as np
+import IPython.display as display
 import time
 import datetime
 import pytz

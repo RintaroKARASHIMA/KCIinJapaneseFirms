@@ -4,7 +4,7 @@
 # %%
 %run ../../src/initialize/load_libraries.py
 %run 0_LoadLibraries.py
-from scipy.stats import wilcoxon
+from scipy.stats import wilcoxon, mannwhitneyu
 DATA_DIR = '../../data/processed/internal/05_2_7_tech_comparison/'
 
 # %%
@@ -26,6 +26,8 @@ tech_color = {
     'Mechanical engineering, machinery': 'tab:orange',
     'Other fields': 'tab:gray'
 }
+#%%
+name_df
 
 # %%
 ## Scatter plot
@@ -176,9 +178,17 @@ addr_df['tci_abs'] = abs(addr_df['schmoch35_tci'] - addr_df['ipc3_tci'])
 name_df['schmoch35-ipc3'] = name_df['schmoch35'] + '-' + name_df['ipc3']
 addr_df['schmoch35-ipc3'] = addr_df['schmoch35'] + '-' + addr_df['ipc3']
 name_addr_df = pd.merge(name_df[['schmoch35-ipc3', 'tci_abs']].rename(columns={'tci_abs':'tci_abs_name'}), addr_df[['schmoch35-ipc3', 'tci_abs']].rename(columns={'tci_abs':'tci_abs_addr'}), on='schmoch35-ipc3', how='inner')
+# ウィルコクソンの符号つき順位検定
 statistic, p_value = wilcoxon(name_addr_df['tci_abs_name'], name_addr_df['tci_abs_addr'])
 print(statistic, p_value)
-display(name_addr_df)
+# マンホイットニーのU検定
+statistic, p_value = mannwhitneyu(name_addr_df['tci_abs_name'], name_addr_df['tci_abs_addr'], 
+                                  alternative='two-sided')
+print(statistic, p_value)
+# display(name_addr_df)
+
+#%%
+name_addr_df
 
 #%%
 fig, ax = plt.subplots(figsize=(11, 6))
@@ -427,3 +437,4 @@ ax2.grid(True, linestyle='--', which='major', axis='x')
 # %%
 addr_df[addr_df['schmoch35_tci']>=75]['schmoch35'].nunique()
 name_df[name_df['schmoch35_tci']>=75]['schmoch35'].nunique()
+# %%

@@ -2,10 +2,14 @@
 # -*- coding: utf-8 -*-
 
 #%%
-## Import Library
+## If necessary, Import Libraries
+import pandas as pd
+import numpy as np
+import IPython.display as display
+
 ### Processing Data
-%run ../../src/initialize/load_libraries.py
-%run 0_LoadLibraries.py
+# %run ../../src/initialize/load_libraries.py
+# %run 0_LoadLibraries.py
 
 ## Initialize Global Variables
 global DATA_DIR, OUTPUT_DIR

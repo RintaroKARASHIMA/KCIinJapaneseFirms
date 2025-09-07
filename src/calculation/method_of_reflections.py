@@ -23,7 +23,7 @@ applicant_weight = initial_conditions.APPLICANT_WEIGHT
 classification = initial_conditions.CLASSIFICATION
 class_weight = initial_conditions.CLASS_WEIGHT
 
-def kh_ki(c_df, classification, n=19):
+def kh_ki(c_df, region_corporation, classification, n=19):
     kh1_ki1_df = pd.merge(
         c_df.copy(),
         c_df[c_df["mcp"] == 1]

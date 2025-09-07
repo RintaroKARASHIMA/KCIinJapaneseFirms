@@ -3,9 +3,11 @@
 
 
 #%%
-## Import Library
-%run ../../src/initialize/load_libraries.py
-%run 0_LoadLibraries.py
+## If necessary, Import Libraries
+
+import pandas as pd
+import numpy as np
+import IPython.display as display
 
 ## Initialize Global Variables
 global ex_data_dir, in_data_dir
