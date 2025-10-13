@@ -36,7 +36,7 @@ schmoch_df = pd.read_csv(
 ).drop_duplicates()
 
 reg_num_top_df = pd.read_csv(
-    f"{DATA_DIR}app_nendo_1981_2010_5_all_p_3_right_person_name_fraction_schmoch35_fraction.csv", encoding="utf-8", sep=","
+    f"{DATA_DIR}app_nendo_1981_2010_5_all_p_3_right_person_name_fraction_ipc3_fraction.csv", encoding="utf-8", sep=","
 )
 display(reg_num_top_df.head())
 print(reg_num_top_df[region_corporation].nunique())
@@ -48,20 +48,22 @@ print(reg_num_top_df[region_corporation].nunique())
 #     "reg_num"
 # ].nunique()
 #%%
-reg_num_top_df.query('app_nendo_period == "1981-2010"')\
+result_df = reg_num_top_df.query('app_nendo_period == "1981-2010"')\
         .assign(
-            _c_total=lambda x: x.groupby('schmoch35', observed=True)['reg_num'].transform("sum"),
+            _c_total=lambda x: x.groupby('ipc3', observed=True)['reg_num'].transform("sum"),
+            # _c_total=lambda x: x.groupby('schmoch35', observed=True)['reg_num'].transform("sum"),
             _p_total=lambda x: x.groupby('right_person_name', observed=True)['reg_num'].transform("sum"),
         )\
         .assign(
             rta=lambda x: (x['reg_num'] / x["_c_total"]) / (x["_p_total"] / x['reg_num'].sum()),
-            class_q=lambda x: x.groupby('schmoch35')['reg_num'].transform(
+            class_q=lambda x: x.groupby('ipc3')['reg_num'].transform(
                 lambda s: (s.quantile(0.75)-s.quantile(0.25))*1.5
             )
         )\
         .assign(
             mpc=lambda x: np.where(
-                (x["rta"] >= 1.0) | (x['reg_num'] >= x["class_q"]),
+                # (x["rta"] >= 1.0) | (x['reg_num'] >= x["class_q"]),
+                (x["rta"] >= 1.0),
                 1, 0
             ).astype(np.int64)
         )
@@ -69,7 +71,7 @@ reg_num_top_df.query('app_nendo_period == "1981-2010"')\
 #%%
 
 # %%
-classification = 'schmoch35'
+classification = 'ipc3'
 trade_cols = {
     "time": f"{ar}_{year_style}_period",
     "loc": region_corporation,
@@ -82,7 +84,7 @@ col_order_list = [
     region_corporation,
     classification,
     "reg_num",
-    "rca",
+    "rta",
     "mcp",
     "diversity",
     "ubiquity",
@@ -90,13 +92,13 @@ col_order_list = [
     "tci",
 ]
 
-c_df = ecomplexity(reg_num_top_df, cols_input=trade_cols, rca_mcp_threshold=1,
+c_df = ecomplexity(result_df, cols_input=trade_cols, rca_mcp_threshold=1,
                    presence_test="manual")
 # prox_df = proximity(c_df, trade_cols)
 # c_out_df = c_df.copy()
 print(c_df.columns)
 
-classification = 'schmoch35'
+# classification = 'schmoch35'
 c_df = c_df[c_df["reg_num"] > 0].rename(columns=rename_col_dict)[col_order_list]
 c_df = pd.concat(
     [
@@ -108,19 +110,23 @@ c_df = pd.concat(
 )
 
 #%%
-df_2010 = c_df.query('app_nendo_period == "1981-2010"')\
-              .assign(
-                  tech_share = lambda x: x['reg_num'] / x.groupby('schmoch35')['reg_num'].transform('sum'),
-                  tech_share_sq = lambda x: ((x['reg_num'] / x.groupby('schmoch35')['reg_num'].transform('sum'))*100)**2,
-                  hhi = lambda x: x.groupby('schmoch35')['tech_share_sq'].transform('sum'),
-              )
-fig, ax = plt.subplots(figsize=(6, 6))
-sns.scatterplot(x='tci', y='hhi', data=df_2010, ax=ax)
-ax.set_title(f'TCI vs HHI(corr= {df_2010["tci"].corr(df_2010["hhi"]).round(3)})')
-# ax.plot([0,100],[0,100], color='red', linewidth=2, linestyle='--')
-ax.set_xlabel('TCI')
-ax.set_ylabel('HHI')
-plt.show()
+# df_2010 = c_df.query('app_nendo_period == "1981-2010"')\
+#               .assign(
+#                   tech_share = lambda x: x['reg_num'] / x.groupby('schmoch35')['reg_num'].transform('sum'),
+#                   tech_share_sq = lambda x: ((x['reg_num'] / x.groupby('schmoch35')['reg_num'].transform('sum'))*100)**2,
+#                   hhi = lambda x: x.groupby('schmoch35')['tech_share_sq'].transform('sum'),
+#               )
+# fig, ax = plt.subplots(figsize=(6, 6))
+# ax.scatter(x='tci', y='hhi', data=df_2010, 
+#            color='tab:red',
+#            marker='o',
+#            s=15,
+#            )
+# ax.set_title(f'TCI vs HHI(corr= {df_2010["tci"].corr(df_2010["hhi"]).round(3)})')
+# # ax.plot([0,100],[0,100], color='red', linewidth=2, linestyle='--')
+# ax.set_xlabel('TCI')
+# ax.set_ylabel('HHI')
+# plt.show()
 
 #%%
 df_2010.groupby('schmoch35')['tech_share'].sum()
@@ -479,448 +485,97 @@ display(
         .filter(items=['ki_1']).mean()
 )
 
-
 #%%
-all_df.query('right_person_addr == "愛知県"')['right_person_name'].nunique()
-# %%
-combi_dict = {  # ind: [x, y, title, xlabel, ylabel, legend_loc]
-    # 3: ["reg_num_jp", "TCI_jp", "relation between the patent counts and the TCIs in Japan", "Patent Counts", "TCIs", "center left", ],
-    # 4: ["TCI_jp", "reg_num_jp", "relation between the patent counts and the TCIs in Japan", "TCIs", "Patent Counts", "center left", ],
-    # 6: ["TCI_jp", "ubiquity", "relation between the ubiquity and the TCIs in Japan", "TCIs", "Ubiquity", "center left", ],
-    # 7: ["ubiquity", "tci", "", "Degree Centrality $K_{T, 0}$", "TCI", "center left", ],
-    7: ["pci_x", "pci", "", "TOKYO", "OSAKA", "center left", ],
-    8: ["pci_y", "pci", "", "TOKYO", "ALL PREFECTURE", "center left", ], 
+# 位置プリセット
+import re
+
+# 位置プリセット（右下=rb は ha='left', va='top'）
+_POS = {
+    "rb": dict(dx=+5,  dy=-5, ha="left",  va="top"),      # 右下（既定）
+    "rt": dict(dx=+5,  dy=+5, ha="left",  va="bottom"),   # 右上
+    "lb": dict(dx=-5,  dy=-5, ha="right", va="top"),      # 左下
+    "lt": dict(dx=-5,  dy=+5, ha="right", va="bottom"),   # 左上
+    "r":  dict(dx=+6,  dy=0,  ha="left",  va="center"),   # 右
+    "l":  dict(dx=-6,  dy=0,  ha="right", va="center"),   # 左
+    "t":  dict(dx=0,   dy=+6, ha="center",va="bottom"),   # 上
+    "b":  dict(dx=0,   dy=-6, ha="center",va="top"),      # 下
 }
-tokyo_aichi_df = pd.merge(
-    aichi_c_df[aichi_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first'), 
-    tokyo_c_df[tokyo_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first'), 
-    on=['ipc3'], 
-    how='inner'
-).rename(
-    columns={'pci_x':'aichi', 'pci_y':'tokyo'}
-).query('aichi not in aichi.nsmallest(2)', engine='python')\
-.assign(
-    aichi = lambda df: ((df['aichi']-df['aichi'].min())/(df['aichi'].max()-df['aichi'].min()))*100,
-    tokyo = lambda df: ((df['tokyo']-df['tokyo'].min())/(df['tokyo'].max()-df['tokyo'].min()))*100,
-)
-fig, ax = plt.subplots(figsize=(6,6))
-ax.scatter(
-    tokyo_aichi_df['aichi'], 
-    tokyo_aichi_df['tokyo'], 
-    c='black'
-)
-ax.set_aspect('equal')
-ax.set_xticks(range(0, 100+1, 20))
-ax.set_xticklabels(range(0,100+1, 20))
-ax.plot([0, 100], [0, 100], color='red', linewidth=2, linestyle='--')
-ax.set_xlabel('Corporate TCI in Aichi')
-ax.set_ylabel('Corporate TCI in Tokyo')
-plt.show()
-# display(tokyo_aichi_df)
-# display(aichi_c_df[aichi_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first')['pci'])
-# display(tokyo_c_df[tokyo_c_df[f'{ar}_{year_style}_period']=='1981-2010'][['ipc3', 'pci']].drop_duplicates(keep='first')['pci'])
-#%%
-all_vs_3pref_df.to_clipboard()
 
-#%%
-import matplotlib.pyplot as plt
-from adjustText import adjust_text
+def _norm_code(s: str) -> str:
+    """'H03', 'H03-*', ' h03 ' などを 'H03' に正規化"""
+    if not isinstance(s, str):
+        s = str(s)
+    m = re.match(r'\s*([A-Z])\s*([0-9]{2})', s.strip().upper())
+    return f"{m.group(1)}{m.group(2)}" if m else s.strip().upper()[:3]
 
-plt.rcParams['font.size'] = 25
-
-def plot_pair(df, xcol, ycol, xpref, ypref, ax, thresh=20):
+def plot_pref_pair(df, col_x, col_y, name_x, name_y, ax,
+                   mode="auto", max_x=40, max_y=80,
+                   exceptions=None,  # 例: {'H03':'lt', 'G04':'lt', 'G03':'lb'}
+                   respect_mask_for_exceptions=True):
     """
-    x軸に xcol（例: pci_y=Osaka）、y軸に ycol（例: pci_x=Tokyo）をとる散布図を描画。
-    右上がりの y=x の基準線、差分がthresh以上の点にラベルを付与。
+    mode='auto'  : (x<=max_x & y<=max_y) のみ注記
+    mode='fixed' : 特定コードのみ注記（Tokyo-Osaka用）
+    exceptions   : {'CODE3':'rb|lt|lb|r|...'} で注記位置を個別指定
+    respect_mask_for_exceptions : Trueなら例外もマスクを適用
     """
-    # 散布 & y=x
-    ax.scatter(df[xcol], df[ycol], color='black', s=60)
+    # 例外マップを正規化キーに
+    ex_map = {}
+    if exceptions:
+        ex_map = { _norm_code(k): v for k, v in exceptions.items() }
+
+    # 散布と45度線
+    ax.scatter(df[col_x], df[col_y], color='black', s=60)
     ax.plot([0, 100], [0, 100], color='red', linewidth=2, linestyle='--')
 
-    # ラベリング対象（xとyの差で判定）
-    mask = (df[ycol] - df[xcol]).abs() >= thresh
+    # 注記対象選定
+    if mode == "fixed":
+        label_df = df[df['ipc3'].apply(_norm_code).isin({'F41','C40','A24'})].copy()
+    else:
+        base_mask = (df[col_x] <= max_x) & (df[col_y] <= max_y)
+        if col_x == 'pci_y': base_mask = base_mask | ((df[col_x] <= 90)&(df[col_y] <= 60))
+        if exceptions and not respect_mask_for_exceptions:
+            # 例外コードはマスク外でも拾う
+            is_exc = df['ipc3'].apply(_norm_code).isin(set(ex_map.keys()))
+            base_mask = base_mask | is_exc
+        label_df = df[base_mask].copy()
 
-    # 以前の特例（pci_z の高値領域での密集回避）をペア用に調整
-    if ycol == 'pci_z':
-        mask &= ~((df['pci_z'] >= 60) & (df[xcol] >= 40))
-
-    special_codes = ['G09', 'G04', 'G11', 'C40', 'B42']
-    special = df[mask & df['ipc3'].isin(special_codes)]
-    general = df[mask & ~df['ipc3'].isin(special_codes)]
-
-    # 一般コードのテキスト
-    texts = []
-    for _, row in general.iterrows():
-        texts.append(
-            ax.text(row[xcol], row[ycol], row['ipc3'], fontsize=14)
-        )
-    adjust_text(
-        texts, ax=ax,
-        only_move={'points': '', 'text': 'xy'},
-        expand_points=(1.2, 1.2),
-        expand_text=(1.2, 1.2),
-        arrowprops=None
-    )
-
-    # special の注記（オフセットは従来のルールを y側pref に合わせて踏襲）
-    for _, row in special.iterrows():
-        code = row['ipc3']
-        if code == 'G09':
-            dx, dy, ha, va = -15, +5, 'right', 'bottom'
-        elif code == 'G04':
-            dx, dy, ha, va = +5, -15, 'left', 'top'
-        elif code == 'G11':
-            dx, dy, ha, va = -15, +5, 'right', 'bottom'
-        elif code == 'C40' and ypref == 'Tokyo':
-            dx, dy, ha, va = -5, +5, 'right', 'bottom'
-        elif code == 'C40' and ypref == 'Osaka':
-            dx, dy, ha, va = +5, -15, 'left', 'bottom'
-        elif code == 'B42':
-            dx, dy, ha, va = +5, -5, 'left', 'top'
-        else:
-            dx, dy, ha, va = 0, 0, 'center', 'center'
-
+    # 注記描画（既定は右下=rb）
+    for _, row in label_df.iterrows():
+        code_raw = row['ipc3']
+        code = _norm_code(code_raw)
+        pos_key = ex_map.get(code, 'rb')
+        pos = _POS[pos_key]
         ax.annotate(
-            code,
-            xy=(row[xcol], row[ycol]),
-            xytext=(dx, dy),
-            textcoords='offset points',
-            fontsize=14,
-            ha=ha, va=va,
-            arrowprops=dict(arrowstyle='-', lw=0.5, color='gray')
+            code, (row[col_x], row[col_y]),
+            xytext=(pos["dx"], pos["dy"]), textcoords="offset points",
+            fontsize=12, ha=pos["ha"], va=pos["va"],
+            arrowprops=dict(arrowstyle='->', lw=1, color='gray')
         )
 
-    # 軸ラベル
-    ax.set_xlabel(f'Corporate TCI ({xpref})')
-    ax.set_ylabel(f'Corporate TCI ({ypref})')
-
-    # 体裁
+    # 軸
+    ax.set_xlabel(f'Corporate TCI ({name_x})')
+    ax.set_ylabel(f'Corporate TCI ({name_y})')
     ax.set_xticks(range(0, 101, 20))
     ax.set_yticks(range(0, 101, 20))
     ax.set_aspect('equal')
 
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6), constrained_layout=True)
 
-# ── 3面プロット（左・中・右の順で作る）
-fig, (ax_left, ax_mid, ax_right) = plt.subplots(
-    1, 3, figsize=(15, 5), constrained_layout=True
-)
+# 1) Tokyo-Osaka：F41 と C40 のみ。位置は既定=右下（ha='left', va='top'）
+plot_pref_pair(all_vs_3pref_df, 'pci_x', 'pci_y', 'Tokyo', 'Osaka',
+               ax1, mode="fixed", exceptions={'F41':'lb', 'C40':'rt', 'A24':'lb'})
 
-# 左：pci_z vs. pci_x  => x=Tokyo(pci_x), y=Aichi(pci_z)
-plot_pair(all_vs_3pref_df, 'pci_x', 'pci_z', 'Tokyo', 'Aichi', ax_left)
+# 2) Tokyo-Aichi：x<=40 & y<=80。H03/G04=左上、G03=左下。他は右下
+plot_pref_pair(all_vs_3pref_df, 'pci_x', 'pci_z', 'Tokyo', 'Aichi',
+               ax2, mode="auto", max_x=70, max_y=80,
+               exceptions={'H03':'lt', 'G04':'lt', 'G03':'lb', 'G08':'lt','A44':'lb'})
 
-# 中：pci_y vs. pci_z  => x=Aichi(pci_z), y=Osaka(pci_y)
-plot_pair(all_vs_3pref_df, 'pci_z', 'pci_y', 'Aichi', 'Osaka', ax_mid)
-
-# 右：pci_x vs. pci_y  => x=Osaka(pci_y), y=Tokyo(pci_x)
-plot_pair(all_vs_3pref_df, 'pci_y', 'pci_x', 'Osaka', 'Tokyo', ax_right)
-
-plt.show()
-
-
-#%%
-import matplotlib.pyplot as plt
-import pandas as pd
-
-plt.rcParams['font.size'] = 25
-
-def plot_pair(df: pd.DataFrame,
-              xcol: str, ycol: str,
-              xpref: str, ypref: str,
-              ax: plt.Axes,
-              thresh: int = 20,
-              special_offsets: dict | None = None) -> None:
-    """
-    x軸=xcol, y軸=ycol の散布図。
-    注記対象:
-      - |y - x| >= thresh
-      - 両軸とも60以上ではない
-      - （Aichiの軸なら）Aichiの値が80未満
-    """
-    ax.scatter(df[xcol], df[ycol], color='black', s=60)
-    ax.plot([0, 100], [0, 100], color='red', linewidth=2, linestyle='--')
-
-    # 基本の注記マスク
-    mask = (df[ycol] - df[xcol]).abs() >= thresh
-    mask &= ~((df[xcol] >= 60) & (df[ycol] >= 60))
-
-    # Aichi（pci_z）が軸にある場合は、Aichiが80以上を除外
-    if xcol == 'pci_z':
-        mask &= df['pci_z'] < 80
-    if ycol == 'pci_z':
-        mask &= df['pci_z'] < 80
-
-    # 注記（基本は右下）
-    for _, row in df[mask].iterrows():
-        code = row['ipc3']
-        dx, dy, ha, va = +6, -6, 'left', 'top'  # 右下
-
-        # 個別指定があれば上書き
-        if special_offsets and code in special_offsets:
-            o = special_offsets[code]
-            dx = o.get('dx', dx); dy = o.get('dy', dy)
-            ha = o.get('ha', ha); va = o.get('va', va)
-
-        ax.annotate(
-            code,
-            xy=(row[xcol], row[ycol]),
-            xytext=(dx, dy),
-            textcoords='offset points',
-            fontsize=14,
-            ha=ha, va=va,
-            arrowprops=None,
-            clip_on=True
-        )
-
-    ax.set_xlabel(f'Corporate TCI ({xpref})')
-    ax.set_ylabel(f'Corporate TCI ({ypref})')
-    ax.set_xticks(range(0, 101, 20))
-    ax.set_yticks(range(0, 101, 20))
-    ax.set_aspect('equal')
-
-
-# ── 3面プロット
-fig, (ax_left, ax_mid, ax_right) = plt.subplots(
-    1, 3, figsize=(15, 5), constrained_layout=True
-)
-
-# 左：Osaka vs. Tokyo  => x=Tokyo(pci_x), y=Osaka(pci_y)
-# C40 を右真横に固定
-left_special = {
-    "C40": {"dx": 8, "dy": 0, "ha": "left", "va": "center"}
-}
-plot_pair(all_vs_3pref_df, 'pci_x', 'pci_y', 'Tokyo', 'Osaka',
-          ax_left, thresh=20, special_offsets=left_special)
-
-# 中：Aichi vs. Osaka => x=Osaka(pci_y), y=Aichi(pci_z)
-plot_pair(all_vs_3pref_df, 'pci_y', 'pci_z', 'Osaka', 'Aichi',
-          ax_mid, thresh=20)
-
-# 右：Tokyo vs. Aichi => x=Aichi(pci_z), y=Tokyo(pci_x)
-plot_pair(all_vs_3pref_df, 'pci_z', 'pci_x', 'Aichi', 'Tokyo',
-          ax_right, thresh=20)
+# 3) Osaka-Aichi：x<=40 & y<=80。F21のみ右、それ以外は右下
+plot_pref_pair(all_vs_3pref_df, 'pci_y', 'pci_z', 'Osaka', 'Aichi',
+               ax3, mode="auto", max_x=70, max_y=80,
+               exceptions={'F21':'r', 'H03':'rt', 'A45':'rt'})
 
 plt.show()
 
-# %%
-import matplotlib.pyplot as plt
-import pandas as pd
-from typing import Optional, Dict, List
-
-plt.rcParams['font.size'] = 25
-
-def _decrowd(df: pd.DataFrame, xcol: str, ycol: str,
-             max_labels: int = 18, cell: float = 6.0, per_bin: int = 2) -> pd.DataFrame:
-    """密集回避：グリッド間引き + x軸10刻みビンごとの上位抽出 + 総数上限。"""
-    d = df.copy()
-    d["_diff"] = (d[ycol] - d[xcol]).abs()
-
-    # 1) グリッド間引き（セル内で |y-x| 最大だけ残す）
-    d["_gx"] = (d[xcol] // cell).astype(int)
-    d["_gy"] = (d[ycol] // cell).astype(int)
-    d = d.sort_values("_diff", ascending=False).drop_duplicates(["_gx", "_gy"])
-
-    # 2) x軸10刻みビンで各ビンの上位 per_bin 件だけ
-    d["_bin"] = (d[xcol] // 10).astype(int)
-    d = d.sort_values("_diff", ascending=False).groupby("_bin", as_index=False).head(per_bin)
-
-    # 3) 総数を上限でカット
-    d = d.nlargest(max_labels, "_diff")
-
-    return d.drop(columns=["_diff", "_gx", "_gy", "_bin"])
-
-
-def plot_pair(df: pd.DataFrame,
-              xcol: str, ycol: str,
-              xpref: str, ypref: str,
-              ax: plt.Axes,
-              thresh: int = 20,
-              decrowd: bool = True,
-              max_labels: int = 18,
-              cell: float = 6.0,
-              per_bin: int = 2,
-              suppress_codes: Optional[List[str]] = None,
-              special_offsets: Optional[Dict[str, Dict]] = None) -> None:
-    """
-    x軸=xcol, y軸=ycol の散布図を描画し、注記は以下の条件を満たす点のみ：
-      - |y - x| >= thresh
-      - (x >= 60) & (y >= 60) ではない
-      - Aichi 軸が含まれる場合は pci_z < 80
-    その後、密集回避（グリッド間引き＋ビン上位＋上限）を適用。
-    """
-    ax.scatter(df[xcol], df[ycol], color='black', s=60)
-    ax.plot([0, 100], [0, 100], color='red', linewidth=2, linestyle='--')
-
-    mask = (df[ycol] - df[xcol]).abs() >= thresh
-    mask &= ~((df[xcol] >= 60) & (df[ycol] >= 60))
-
-    # Aichi（pci_z）が軸にある場合は Aichi>=80 を除外
-    if xcol == 'pci_z':
-        mask &= df['pci_z'] < 80
-    if ycol == 'pci_z':
-        mask &= df['pci_z'] < 80
-
-    cand = df[mask].copy()
-
-    # コードの強制除外
-    if suppress_codes:
-        cand = cand[~cand['ipc3'].isin(suppress_codes)]
-
-    # 密集回避
-    if decrowd:
-        cand = _decrowd(cand, xcol, ycol, max_labels=max_labels, cell=cell, per_bin=per_bin)
-
-    # 注記（基本は右下）
-    for _, row in cand.iterrows():
-        code = row['ipc3']
-        dx, dy, ha, va = +6, -6, 'left', 'top'  # 右下
-        if special_offsets and code in special_offsets:
-            o = special_offsets[code]
-            dx = o.get('dx', dx); dy = o.get('dy', dy)
-            ha = o.get('ha', ha); va = o.get('va', va)
-
-        ax.annotate(
-            code,
-            xy=(row[xcol], row[ycol]),
-            xytext=(dx, dy),
-            textcoords='offset points',
-            fontsize=14,
-            ha=ha, va=va,
-            arrowprops=None,
-            clip_on=True
-        )
-
-    ax.set_xlabel(f'Corporate TCI ({xpref})')
-    ax.set_ylabel(f'Corporate TCI ({ypref})')
-    ax.set_xticks(range(0, 101, 20))
-    ax.set_yticks(range(0, 101, 20))
-    ax.set_aspect('equal')
-
-
-# ── 3面プロット
-fig, (ax_left, ax_mid, ax_right) = plt.subplots(
-    1, 3, figsize=(15, 5), constrained_layout=True
-)
-
-# 左：Osaka vs. Tokyo  => x=Tokyo(pci_x), y=Osaka(pci_y)
-left_special = {
-    "C40": {"dx": 8, "dy": 0, "ha": "left", "va": "center"}  # 右真横に固定
-}
-plot_pair(
-    all_vs_3pref_df, 'pci_x', 'pci_y', 'Tokyo', 'Osaka', ax_left,
-    thresh=20, decrowd=True, max_labels=16, cell=6.0, per_bin=2,
-    suppress_codes=['F41'],  # ← F41 を除外
-    special_offsets=left_special
-)
-
-# 中：Aichi vs. Osaka => x=Osaka(pci_y), y=Aichi(pci_z)
-plot_pair(
-    all_vs_3pref_df, 'pci_y', 'pci_z', 'Osaka', 'Aichi', ax_mid,
-    thresh=20, decrowd=True, max_labels=14, cell=6.0, per_bin=2
-)
-
-# 右：Tokyo vs. Aichi => x=Aichi(pci_z), y=Tokyo(pci_x)
-plot_pair(
-    all_vs_3pref_df, 'pci_z', 'pci_x', 'Aichi', 'Tokyo', ax_right,
-    thresh=20, decrowd=True, max_labels=14, cell=6.0, per_bin=2
-)
-
-plt.show()
-
-# %%
-import matplotlib.pyplot as plt
-import pandas as pd
-from adjustText import adjust_text
-
-plt.rcParams['font.size'] = 25
-
-def plot_pair(df, xcol, ycol, xpref, ypref, ax,
-              thresh=20, highhigh_cutoff=50,
-              skip_ipcs=None, aichi_hide_ge=85,
-              special_offsets=None):
-    skip_ipcs = set(skip_ipcs or [])
-    special_offsets = special_offsets or {}
-
-    # 散布（戻り値を保持して adjust_text に渡す）
-    sc = ax.scatter(df[xcol], df[ycol], color='black', s=60)
-
-    # y=x
-    ax.plot([0,100],[0,100], color='red', linewidth=2, linestyle='--')
-
-    # 注記対象
-    mask = (df[ycol] - df[xcol]).abs() >= thresh
-    mask &= ~((df[xcol] >= highhigh_cutoff) & (df[ycol] >= highhigh_cutoff))
-    if aichi_hide_ge is not None:
-        if xpref == 'Aichi':
-            mask &= (df[xcol] < aichi_hide_ge)
-        if ypref == 'Aichi':
-            mask &= (df[ycol] < aichi_hide_ge)
-
-    cand = df[mask & ~df['ipc3'].isin(skip_ipcs)].copy()
-
-    # special / general
-    special = cand[cand['ipc3'].isin(special_offsets.keys())]
-    general = cand[~cand['ipc3'].isin(special_offsets.keys())]
-
-    texts = []
-    # ---- general：Annotationで作る（矢印は常に xy=点 を指す）
-    for _, row in general.iterrows():
-        x, y, code = row[xcol], row[ycol], row['ipc3']
-        # 初期オフセットを対角線の上下で変える
-        if y >= x:
-            dx, dy, ha, va = -6, +6, 'right', 'bottom'
-        else:
-            dx, dy, ha, va = +6, -6, 'left', 'top'
-        ann = ax.annotate(
-            code, xy=(x, y), xytext=(dx, dy),
-            textcoords='offset points', fontsize=14, ha=ha, va=va,
-            arrowprops=dict(arrowstyle='-', lw=0.5, color='gray'),
-            zorder=3
-        )
-        texts.append(ann)
-    pad = 3  # 2〜5 くらいで調整
-    ax.set_xlim(-pad, 100 + pad)
-    ax.set_ylim(-pad, 100 + pad)
-    # ラベルだけ動かす（points は動かさない）
-    adjust_text(
-        texts, ax=ax, add_objects=[sc],
-        only_move={'points': '', 'text': 'xy'},  # テキスト(x,y)移動のみ
-        expand_points=(1.2, 1.2), expand_text=(1.2, 1.2),
-        force_text=0.8
-    )
-
-    # ---- special：個別オフセットを固定で指定
-    for _, row in special.iterrows():
-        code = row['ipc3']; x, y = row[xcol], row[ycol]
-        dx, dy, ha, va = special_offsets[code]
-        ax.annotate(
-            code, xy=(x, y), xytext=(dx, dy),
-            textcoords='offset points', fontsize=14, ha=ha, va=va,
-            arrowprops=dict(arrowstyle='-', lw=0.5, color='gray'),
-            zorder=3
-        )
-
-    ax.set_xlabel(f'Corporate TCI ({xpref})')
-    ax.set_ylabel(f'Corporate TCI ({ypref})')
-    ax.set_xticks(range(0,101,20))
-    ax.set_yticks(range(0,101,20))
-    ax.set_aspect('equal')
-
-
-# ── 3面
-fig, (ax_left, ax_mid, ax_right) = plt.subplots(1, 3, figsize=(15,5), constrained_layout=True)
-
-# 左：Osaka vs Tokyo（F41除外）
-plot_pair(all_vs_3pref_df, 'pci_x', 'pci_y', 'Tokyo', 'Osaka', ax_left,
-          skip_ipcs={'F41'})
-
-# 中：Aichi vs Osaka（Aichi>=85非表示）
-plot_pair(all_vs_3pref_df, 'pci_y', 'pci_z', 'Osaka', 'Aichi', ax_mid,
-          aichi_hide_ge=85)
-
-# 右：Tokyo vs Aichi（Aichi>=85非表示）
-plot_pair(all_vs_3pref_df, 'pci_z', 'pci_x', 'Aichi', 'Tokyo', ax_right,
-          aichi_hide_ge=85)
-
-plt.show()
 
 # %%

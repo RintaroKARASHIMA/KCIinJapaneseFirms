@@ -28,13 +28,14 @@ The directory of this project is mainly composed of **three private** and **thre
 │   │   ├───external
 │   │   └───internal
 │   │       ├───bulk
-│   │       ├───filtered_after_agg
-│   │       ├───filtered_before_agg
-│   │       ├───filter_after_agg
-│   │       ├───filter_before_agg
 │   │       ├───fixed
+│   │       ├───jp_filter
+│   │       ├───jp_filtered
 │   │       ├───merged
-│   │       └───stack
+│   │       ├───reg_num_filter
+│   │       ├───reg_num_filtered
+│   │       ├───stack
+│   │       └───weighted
 │   ├───processed
 │   │   ├───external
 │   │   │   ├───abroad

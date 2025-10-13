@@ -1,0 +1,20 @@
+ar: 'app'
+year_style: 'nendo'
+year_start: 1981
+year_end: 2010
+year_range: 5
+region_corporation: 'corporation'
+applicant_weight: 'fraction'
+classification: 'schmoch35'
+class_weight: 'fraction'
+
+extract_span: 'all'
+extract_population: 'corporation'
+top_p_or_num: 'p'
+top_p_or_num_value: 3
+
+in_dir: '../../data/interim/internal/weighted/'
+out_dir: '../../data/interim/internal/reg_num_filtered/'
+
+in_file_name: '{ar}_{year_style}_{region_corporation}_{classification}'
+out_file_name: '{ar}_{year_style}_{year_start}_{year_end}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}_{extract_population}_{extract_span}_{top_p_or_num}_{top_p_or_num_value}'

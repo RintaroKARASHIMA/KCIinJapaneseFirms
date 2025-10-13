@@ -23,23 +23,13 @@ raw_df = pd.read_csv(
     '../../data/interim/internal/jp_filtered/japan_corporations.csv',
     encoding='utf-8',
     sep=',',
+    usecols=['reg_num', 'app_nendo', 'prefecture', 'schmoch35'],
     dtype={
-        'ipc': object,
         'reg_num': object,
-        'app_year': np.int64,
         'app_nendo': np.int64,
-        'reg_year': np.int64,
-        'reg_nendo': np.int64,
-        'right_person_addr': str,
+        'prefecture': str,
         'schmoch35': np.int64,
     }
-    )\
-    .assign(
-        ipc3 = lambda x: x['ipc'].str[:3],
-        ipc4 = lambda x: x['ipc'].str[:4],
-    )\
-    .drop(
-        columns=['ipc','corporation']
     )\
     .drop_duplicates(
         keep='first'
@@ -48,22 +38,25 @@ display(raw_df)
 
 
 # %%
-df = raw_df.query('1981 <= app_nendo <= 2015', engine='python')\
-           .drop(columns=['app_year', 'reg_year', 'reg_nendo'])\
-           .drop_duplicates(keep='first')\
-           .reset_index(drop=True)
-
+df = raw_df.query('1981 <= app_nendo <= 2015', engine='python')
 
 #%%
-import numpy as np
-import pandas as pd
-from typing import Literal, List, Dict, Any
-
+long_df = df.assign(
+    addr_count=lambda x: x.groupby('reg_num')['prefecture'].transform('nunique'),
+    class_count=lambda x: x.groupby('reg_num')['schmoch35'].transform('nunique')
+).assign(
+    weight=lambda x: 1 / (x['addr_count'] * x['class_count'])
+).groupby(['prefecture', 'schmoch35'], as_index=False)\
+.agg(
+    patent_count=('weight', 'sum')
+)
+long_df
+#%%
 def compute_pref_schmoch_lq(
     df: pd.DataFrame,
     aggregate: Literal[True, False] = True,
     *,
-    producer_col: str = "prefecture",
+    prefecture_col: str = "prefecture",
     class_col: str = "schmoch35",
     count_col: str = "patent_count",
     q: float = 0.5,
@@ -75,19 +68,19 @@ def compute_pref_schmoch_lq(
       mpc = 1 if (rta >= 1) OR (count >= a_k), else 0.
 
     Args:
-        df: A DataFrame containing at least (producer_col, class_col, count_col).
+        df: A DataFrame containing at least (prefecture_col, class_col, count_col).
         aggregate: If True, pre-aggregate counts by (prefecture, class).
-        producer_col: Column name of location/prefecture.
+        prefecture_col: Column name of location/prefecture.
         class_col: Column name of technology class.
         count_col: Column name of patent count for (prefecture, class).
         q: Quantile for per-class cutoff a_k (default 0.25).
 
     Returns:
         DataFrame with columns:
-          [producer_col, class_col, count_col, rta, class_q, mpc]
+          [prefecture_col, class_col, count_col, rta, class_q, mpc]
         where class_q is the per-class quantile cutoff a_k.
     """
-    cols = [producer_col, class_col, count_col]
+    cols = [prefecture_col, class_col, count_col]
     missing = [c for c in cols if c not in df.columns]
     if missing:
         raise KeyError(f"missing columns: {missing}")
@@ -98,7 +91,7 @@ def compute_pref_schmoch_lq(
     # 事前集計（重複( p,c )がある場合を安全に処理）
     if aggregate:
         base = (
-            base.groupby([producer_col, class_col], observed=True, sort=False, as_index=False)[count_col]
+            base.groupby([prefecture_col, class_col], observed=True, sort=False, as_index=False)[count_col]
                 .sum()
         )
 
@@ -118,7 +111,7 @@ def compute_pref_schmoch_lq(
         base
         .assign(
             _c_total=lambda x: x.groupby(class_col, observed=True)[count_col].transform("sum"),
-            _p_total=lambda x: x.groupby(producer_col, observed=True)[count_col].transform("sum"),
+            _p_total=lambda x: x.groupby(prefecture_col, observed=True)[count_col].transform("sum"),
         )
         .assign(
             rta=lambda x: (x[count_col] / x["_c_total"]) / (x["_p_total"] / total)
@@ -138,16 +131,17 @@ def compute_pref_schmoch_lq(
     )
 
     return result
+long_mcp = compute_pref_schmoch_lq(long_df, class_col='schmoch35')
+long_mcp
 
+
+#%%
 window_size = 5
 tech = 'schmoch35'
 sep_mcp = pd.concat(
                    [
                     compute_pref_schmoch_lq(
-                        df.drop(
-                                columns=list(set(['ipc3', 'ipc4', 'schmoch35']) - set([tech]))
-                                )\
-                                .drop_duplicates(keep='first')\
+                        df.drop_duplicates(keep='first')\
                                 .query('@window-@window_size+1 <= app_nendo <= @window', engine='python')\
                                 .assign(
                                     addr_count=lambda x: x.groupby('reg_num')['prefecture'].transform('nunique'),
@@ -174,7 +168,7 @@ sep_mcp
 
 
 #%%
-def define_mcp(sep_mcp: pd.DataFrame) -> pd.DataFrame:
+def define_mcp(mcp: pd.DataFrame) -> pd.DataFrame:
     
     # Computation of RCA
     def rca(biadjm):
@@ -227,14 +221,21 @@ def define_mcp(sep_mcp: pd.DataFrame) -> pd.DataFrame:
 
 
     # Computation of Coherent Diversification
-    def coherence(biadjm,B_network):
+    def coherence(biadjm):
         bam = np.array(biadjm)
-        B = np.array(B_network)
+        u = biadjm.sum(axis=0)       # u_p
+        d = biadjm.sum(axis=1)       # d_c
+
+        B = np.zeros((biadjm.shape[1], biadjm.shape[1]))
+        for p in range(biadjm.shape[1]):
+            for p2 in range(biadjm.shape[1]):
+                B[p, p2] = (biadjm[:, p] * biadjm[:, p2] / d).sum() / max(u[p], u[p2])
         div = np.sum(bam,axis=1)
         gamma = np.nan_to_num(np.dot(B,bam.T).T)
         GAMMA = bam * gamma
         return np.nan_to_num(np.sum(GAMMA,axis=1)/div)
-    biadjm_presence = sep_mcp.pivot_table(
+
+    biadjm_presence = mcp.pivot_table(
         index="prefecture",
         columns=tech,
         values="mpc",
@@ -242,11 +243,13 @@ def define_mcp(sep_mcp: pd.DataFrame) -> pd.DataFrame:
         fill_value=0
     )
     fitness, complexity = Fitn_Comp(biadjm_presence.values)
+    coherence_score = coherence(biadjm_presence.values)
     prefectures = biadjm_presence.index
     result_df = pd.DataFrame(
         {
             'prefecture': prefectures,
-            'fitness': fitness
+            'fitness': fitness,
+            'coherence': coherence_score
         }
     ).sort_values(by='fitness', ascending=False, ignore_index=True)
     tech_result_df = pd.DataFrame(
@@ -256,8 +259,181 @@ def define_mcp(sep_mcp: pd.DataFrame) -> pd.DataFrame:
         }
     ).sort_values(by='complexity', ascending=False, ignore_index=True)
     return result_df, tech_result_df
-    
+   
 
+#%%
+
+#%%
+long_grp_df = pd.read_csv(
+    '../../data/processed/external/grp/grp_capita.csv',
+    encoding='utf-8',
+    sep=',',
+    ).query('year in [1995, 2005]', engine='python')\
+    .sort_values(by=['prefecture', 'year'], ascending=True, ignore_index=True)\
+    .assign(
+    #     # ln_gdp_capita = lambda x: np.log(x['GRP_per_capita_yen']), 
+        gdp_capita_pct = lambda x: x.groupby('prefecture')['GRP_per_capita_yen'].pct_change()*100
+    )\
+    .dropna(ignore_index=True)
+result_df = pd.merge(define_mcp(long_mcp)[0], long_grp_df, on='prefecture', how='left')\
+    .assign(
+        ln_coherence = lambda x: np.log(x['coherence']),
+    )
+result_df
+#%%
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib as mpl
+
+fig, ax = plt.subplots(figsize=(6, 5), dpi=300)
+
+# カスタムカラーマップ（青→グレー→黄）
+cmap = mpl.colors.LinearSegmentedColormap.from_list(
+    "custom", ["#08306b", "gray", "tab:orange"]
+)
+
+sns.scatterplot(
+    data=result_df,
+    x='fitness', y='coherence',
+    hue='gdp_capita_pct',
+    palette='viridis',
+    legend=False  # レジェンドを非表示
+)
+
+plt.xlabel('Fitness (F)')
+plt.ylabel('Coherence (Γ)')
+
+# カラーバーを追加
+norm = plt.Normalize(
+    result_df['gdp_capita_pct'].min(),
+    result_df['gdp_capita_pct'].max()
+)
+sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+sm.set_array([])
+cbar = fig.colorbar(sm, ax=ax)
+cbar.set_label('% Δ GRPpc')
+plt.xscale('log')
+plt.yscale('log')
+#%%
+fig, ax = plt.subplots(figsize=(6, 5), dpi=300)
+
+# カスタムカラーマップ（青→グレー→黄）
+cmap = mpl.colors.LinearSegmentedColormap.from_list(
+    "custom", ["#08306b", "gray", "tab:orange"]
+)
+
+sns.scatterplot(
+    data=result_df.assign(
+        ln_coherence = lambda x: np.log(x['coherence']),
+    ),
+    x='ln_coherence', y='gdp_capita_pct',
+    hue='fitness',
+    palette='viridis',
+    legend=False  # レジェンドを非表示
+)
+
+plt.xlabel('log(Coherence (Γ))')
+plt.ylabel('% Δ GRPpc')
+
+# カラーバーを追加
+norm = plt.Normalize(
+    result_df['fitness'].min(),
+    result_df['fitness'].max()
+)
+sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+sm.set_array([])
+cbar = fig.colorbar(sm, ax=ax)
+cbar.set_label('Fitness (F)')
+# plt.xscale('log')
+# plt.yscale('log')
+#%%
+fig, ax = plt.subplots(figsize=(6, 5), dpi=300)
+
+# カスタムカラーマップ（青→グレー→黄）
+cmap = mpl.colors.LinearSegmentedColormap.from_list(
+    "custom", ["#08306b", "gray", "tab:orange"]
+)
+
+sns.scatterplot(
+    data=result_df,
+    x='fitness', y='coherence',
+    hue='gdp_capita_pct',
+    palette='viridis',
+    legend=False  # レジェンドを非表示
+)
+
+plt.xlabel('Fitness (F)')
+plt.ylabel('log(Coherence (Γ))')
+
+# カラーバーを追加
+norm = plt.Normalize(
+    result_df['gdp_capita_pct'].min(),
+    result_df['gdp_capita_pct'].max()
+)
+sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+sm.set_array([])
+cbar = fig.colorbar(sm, ax=ax)
+cbar.set_label('% Δ GRPpc')
+plt.xscale('log')
+plt.title(f'{result_df["fitness"].corr(result_df["ln_coherence"]):.3f}')
+# plt.yscale('log')
+
+#%%
+import plotly.express as px
+
+# 青→グレー→黄（連続）カラースケール
+custom_colorscale = [
+    (0.0, "#313695"),  # dark blue
+    (0.5, "#542788"),  # purple
+    (1.0, "#d73027"),  # red
+]
+fig = px.scatter(
+    result_df,
+    x="fitness",
+    y="coherence",
+    color="gdp_capita_pct",
+    color_continuous_scale='viridis',
+    hover_name="prefecture",  # ←列名に合わせて変更
+    hover_data={
+        "fitness":":.3g",
+        "coherence":":.3g",
+        "gdp_capita_pct":":.1f",
+    },
+    labels={
+        "fitness": "Fitness (F)",
+        "coherence": "Coherence (Γ)",
+        "gdp_capita_pct": "% Δ GRPpc",
+    },
+)
+
+# 軸をログにして、背景白・補助線なし・主軸線黒
+fig.update_xaxes(
+    type="log",
+    showgrid=False,       # 補助線オフ
+    zeroline=False,       # 0ライン非表示（ログ軸なので念のため）
+    showline=True,        # 軸線を表示
+    linecolor="black",    # 軸線の色
+    linewidth=1
+)
+fig.update_yaxes(
+    type="log",
+    showgrid=False,
+    zeroline=False,
+    showline=True,
+    linecolor="black",
+    linewidth=1
+)
+
+fig.update_layout(
+    plot_bgcolor="white",   # 背景白
+    paper_bgcolor="white",  # 外側も白
+    coloraxis_colorbar=dict(title="% Δ GRPpc"),
+    width=600, height=500,
+)
+
+fig.show()
+
+#%%
 # 5) Fitness & Complexity（presenceを入力）
 result_df = pd.concat([define_mcp(sep_mcp.query('app_nendo_period == @period', engine='python'))\
                         [0]\
@@ -313,6 +489,7 @@ fitness_df = pref_df.copy()\
                         tau = lambda x: x['app_nendo_period'].str[-4:].astype(np.int64),
                         ln_patent_count = lambda x: np.log1p(x['patent_count']), 
                         ln_fitness = lambda x: np.log(x['fitness']),
+                        ln_coherence = lambda x: np.log(x['coherence']),
                         ln_mcp = lambda x: np.log(x['mpc']),
                         z_fitness = lambda x: (x['fitness'] - x['fitness'].mean()) / x['fitness'].std(),
                         fitness_lag1 = lambda x: x.groupby('prefecture')['fitness'].shift(1),
@@ -320,11 +497,11 @@ fitness_df = pref_df.copy()\
                         fitness_lag3 = lambda x: x.groupby('prefecture')['fitness'].shift(3),
                         fitness_lag4 = lambda x: x.groupby('prefecture')['fitness'].shift(4),
                         fitness_lag5 = lambda x: x.groupby('prefecture')['fitness'].shift(5),
-                        fitness_lead1 = lambda x: x.groupby('prefecture')['fitness'].shift(-1),
-                        fitness_lead2 = lambda x: x.groupby('prefecture')['fitness'].shift(-2),
-                        fitness_lead3 = lambda x: x.groupby('prefecture')['fitness'].shift(-3),
-                        fitness_lead4 = lambda x: x.groupby('prefecture')['fitness'].shift(-4),
-                        fitness_lead5 = lambda x: x.groupby('prefecture')['fitness'].shift(-5),
+                        fitness_lead1 = lambda x: x.groupby('prefecture')['fitness'].shift(-6),
+                        fitness_lead2 = lambda x: x.groupby('prefecture')['fitness'].shift(-7),
+                        fitness_lead3 = lambda x: x.groupby('prefecture')['fitness'].shift(-8),
+                        fitness_lead4 = lambda x: x.groupby('prefecture')['fitness'].shift(-9),
+                        fitness_lead5 = lambda x: x.groupby('prefecture')['fitness'].shift(-10),
                     )
 panel_df = pd.merge(
     grp_df,
@@ -361,7 +538,7 @@ for fixed_effect in ['', '+EntityEffects', '+TimeEffects', '+EntityEffects + Tim
     print('*'*115)
     print(fixed_effect)
     model = PanelOLS.from_formula(
-           f"g5_bar_pc_yen ~ 1 + ln_GRP + fitness + ln_capita_density + ln_patent_count{fixed_effect}",
+           f"g5_bar_pc_yen ~ 1 + ln_GRP + ln_coherence + ln_capita_density + ln_patent_count{fixed_effect}",
         # "g5_bar_pc_yen ~ 1 + ln_GRP + fitness + ln_capita",
         data=panel_df
     )

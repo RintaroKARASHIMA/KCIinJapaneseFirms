@@ -1,0 +1,9 @@
+ar: 'app'
+year_style: 'nendo'
+region_corporation: 'corporation'
+classification: 'schmoch35'
+
+in_dir: '../../data/interim/internal/jp_filtered/'
+out_dir: '../../data/interim/internal/weighted/'
+
+out_file_name: '{ar}_{year_style}_{region_corporation}_{classification}'

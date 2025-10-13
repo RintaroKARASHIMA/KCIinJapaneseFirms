@@ -17,8 +17,8 @@ import IPython.display as display
 # Initialize Global Variables
 global ex_data_dir, in_data_dir, in_filter_dir
 ex_data_dir = '../../data/processed/external/'
-in_data_dir = '../../data/interim/internal/filtered_before_agg/'
-in_filter_dir = '../../data/interim/internal/filter_before_agg/'
+in_data_dir = '../../data/interim/internal/jp_filtered/'
+in_filter_dir = '../../data/interim/internal/jp_filter/'
 
 # %%
 pref_list = [
@@ -81,6 +81,7 @@ city_df = pd.read_csv(
 )
 city_df
 
+
 #%%
 japan_df = pd.merge(df, city_df, left_on='right_person_addr', right_on='city', 
          how='left').drop(columns=['city']).copy()
@@ -99,12 +100,23 @@ japan_df['right_person_addr'] = pd.Categorical(japan_df['right_person_addr'],
                                                categories=pref_list+[''], 
                                                ordered=True)
 japan_df = japan_df.sort_values(by=['app_year', 'right_person_name', 'right_person_addr'], 
-                                ascending=True)
+                                ascending=True)\
+                    .drop_duplicates(
+                        # 遡及日を基準にしておく（4003835のような場合）
+                        subset=['reg_num', 'right_person_name', 'ipc'], 
+                         keep='first', ignore_index=True)
+                    
 japan_df['right_person_addr'] = japan_df['right_person_addr'].replace('', np.nan).ffill()
 japan_df
 
 #%%
-japan_df.to_csv(in_data_dir + 'japan.csv', 
+japan_df.query('reg_num == "4003835"')
+#%%
+japan_df
+#%%
+japan_df.rename(columns={'right_person_name': 'corporation', 'right_person_addr': 'prefecture'})\
+        .to_csv(in_data_dir + 'japan_corporations.csv', 
                 encoding='utf-8', 
                 sep=',', 
                 index=False)
+# %%

@@ -99,7 +99,7 @@ stage5_df.head()
 
 
 
-stage5_df.to_csv(f'{output_dir}filtered.csv', 
+stage5_df.to_csv(f'{output_dir}corporations.csv', 
                  encoding='utf-8', 
                  index=False, 
                  sep=',')

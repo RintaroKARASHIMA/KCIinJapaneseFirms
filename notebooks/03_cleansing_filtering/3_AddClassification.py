@@ -28,7 +28,7 @@ ipc_to_schmoch35_dict = dict(zip(schmoch_df['IPC_code'], schmoch_df['Field_numbe
 schmoch35_to_describe_dict = dict(zip(schmoch_df['IPC_code'], schmoch_df['Field_number']))
 # ipc_to_schmoch35_dict
 
-df = pd.read_csv(in_data_dir + 'filtered.csv')
+df = pd.read_csv(in_data_dir + 'corporations.csv')
 df
 df['schmoch35'] = ''
 for ipc, schmoch35 in ipc_to_schmoch35_dict.items():

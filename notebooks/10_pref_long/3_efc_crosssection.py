@@ -136,35 +136,99 @@ def compute_pref_schmoch_lq(
 
     return result
 
-window_size = 5
-sep_mcp = pd.concat(
-                   [
-                    compute_pref_schmoch_lq(
+tech = 'schmoch35'
+long_mcp = compute_pref_schmoch_lq(
                         df.drop(
-                                columns=['ipc3', 'ipc4']
+                                columns=list(set(['ipc3', 'ipc4', 'schmoch35']) - set([tech]))
                                 )\
-                                .drop_duplicates(keep='first')\
-                                .query('@window-@window_size+1 <= app_nendo <= @window', engine='python')\
-                                .assign(
+                            .drop_duplicates(keep='first')\
+                            .assign(
                                     addr_count=lambda x: x.groupby('reg_num')['right_person_addr'].transform('nunique'),
-                                    class_count=lambda x: x.groupby('reg_num')['schmoch35'].transform('nunique')
+                                    class_count=lambda x: x.groupby('reg_num')[tech].transform('nunique')
                                 )\
-                                .assign(
-                                    weight=lambda x: 1 / (x['addr_count'] * x['class_count'])
+                            .assign(
+                                weight=lambda x: 1 / (x['addr_count'] * x['class_count'])
                                 )\
-                                .groupby(['right_person_addr', 'schmoch35'], as_index=False)\
-                                .agg(
+                            .groupby(['right_person_addr', tech], as_index=False)\
+                            .agg(
                                     patent_count=('weight', 'sum')
                                 )\
-                                .rename(columns={'right_person_addr':'prefecture'}))\
-                                .assign(
-                                    app_nendo_period = lambda x: f'{window-window_size+1}-{window}'
-                                )
-                    for window in range(1985, 2015+1)
-                    ], 
-                   axis='index',
-                   ignore_index=True)
-sep_mcp
+                            .rename(columns={'right_person_addr':'prefecture'})
+                        , class_col=tech
+                        )
+long_mcp
+#%%
+long_mcp
+#%%
+schmoch35_df = pd.read_csv(
+    '../../data/processed/external/schmoch/35.csv',
+    encoding='utf-8',
+    sep=',',
+    ).filter(items=['Field_number', 'Field_en'])\
+    .drop_duplicates(
+        keep='first'
+    )
+display(schmoch35_df)
+#%%
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def degree_sorted_heatmap_binary_both(
+    df: pd.DataFrame,
+    *,
+    title: str = "Adjacency (row/col-degree sorted, binary cmap)"
+) -> pd.DataFrame:
+    """
+    行和・列和（degree）で並べ替え、0=白, 1=黒 で表示。
+
+    Args:
+        df: pandas DataFrame（0/1 の隣接行列）
+        title: 図タイトル
+
+    Returns:
+        並べ替え後の DataFrame
+    """
+    A = df.copy()
+
+    # 行和・列和で降順ソート
+    row_order = A.sum(axis=1).sort_values(ascending=False).index
+    col_order = A.sum(axis=0).sort_values(ascending=False).index
+    A_sorted = A.loc[row_order, col_order]
+
+    n_rows, n_cols = A_sorted.shape
+
+    fig, ax = plt.subplots(figsize= (7, 6))
+    im = ax.imshow(A_sorted.to_numpy(), aspect="auto", cmap="binary", vmin=0, vmax=1)
+
+    # ax.set_title(title)
+
+    ax.set_xticks(np.arange(n_cols))
+    ax.set_yticks(np.arange(n_rows))
+    ax.set_xticklabels(A_sorted.columns.astype(str), rotation=90, fontsize=8)
+    ax.set_yticklabels(A_sorted.index.astype(str), fontsize=8)
+
+    # cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    # cbar.set_label("0=white, 1=black", rotation=270, labelpad=12)
+
+    fig.tight_layout()
+    plt.show()
+
+    return A_sorted
+A_sorted = degree_sorted_heatmap_binary_both(
+    long_mcp.merge(
+        schmoch35_df,
+        left_on=tech,
+        right_on='Field_number',
+        how='left'
+    )\
+    .pivot_table(
+    index="prefecture",
+    columns='Field_en',
+    values="mpc",
+    aggfunc="sum",
+    fill_value=0
+    ).T)
 
 
 
@@ -231,7 +295,7 @@ def define_mcp(sep_mcp: pd.DataFrame) -> pd.DataFrame:
         return np.nan_to_num(np.sum(GAMMA,axis=1)/div)
     biadjm_presence = sep_mcp.pivot_table(
         index="prefecture",
-        columns="schmoch35",
+        columns=tech,
         values="mpc",
         aggfunc="sum",
         fill_value=0
@@ -244,85 +308,44 @@ def define_mcp(sep_mcp: pd.DataFrame) -> pd.DataFrame:
             'fitness': fitness
         }
     ).sort_values(by='fitness', ascending=False, ignore_index=True)
-    return result_df
+    tech_result_df = pd.DataFrame(
+        {
+            'tech': biadjm_presence.columns,
+            'complexity': complexity
+        }
+    ).sort_values(by='complexity', ascending=False, ignore_index=True)
+    return result_df, tech_result_df
     
 
 # 5) Fitness & Complexity（presenceを入力）
-result_df = pd.concat([define_mcp(sep_mcp.query('app_nendo_period == @period', engine='python'))\
+result_df = define_mcp(long_mcp)[0]\
                         .assign(
-                                app_nendo_period = period, 
+                                app_nendo_period = "1981-2015", 
                                 # rank = lambda x: x['fitness'].rank(method='min', ascending=False).astype(np.int64)
                                 )
-                        for period in sep_mcp['app_nendo_period'].unique()], ignore_index=True)
 result_df
 
 #%%
-result_df['app_nendo_period'].unique()
+tech_result_df = define_mcp(long_mcp)[1]
+tech_result_df
+#%%
 
-# %%
-pref_df = pd.merge(
-    sep_mcp.groupby(['app_nendo_period', 'prefecture']).agg(
-        {'mpc': 'sum', 'patent_count': 'sum'}
-    ),
-    result_df,
-    on=['app_nendo_period', 'prefecture'],
-    how='left'
-    )
-pref_df
-# %%
-
-# %%
-grp_df = pd.read_csv(
-    '../../data/processed/external/grp/grp_capita.csv',
+schmoch35_df = pd.read_csv(
+    '../../data/processed/external/schmoch/35.csv',
     encoding='utf-8',
     sep=',',
-    )\
-    .sort_values(by=['prefecture', 'year'], ascending=True, ignore_index=True)\
-    .assign(
-        ln_GRP = lambda x: np.log(x['GRP']),
-        ln_GRP_t5 = lambda x: x.groupby('prefecture')['ln_GRP'].shift(-5),
-        g5_bar = lambda x: (x['ln_GRP_t5'] - x['ln_GRP'])/5,
-        ln_GRP_pc_yen = lambda x: np.log(x['GRP_per_capita_yen']), 
-        ln_GRP_pc_yen_t5 = lambda x: x.groupby('prefecture')['ln_GRP_pc_yen'].shift(-5),
-        g5_bar_pc_yen = lambda x: (x['ln_GRP_pc_yen_t5'] - x['ln_GRP_pc_yen'])/5,
-        ln_capita = lambda x: np.log(x['capita']),
-    )\
-    .rename(columns={'year': 'tau'})\
-    .drop_duplicates(keep='first', ignore_index=True)\
-    .query('(1981 <= tau <= 2015)', engine='python')
-grp_df
-#%%
-fitness_df = pref_df.copy()\
-                    .assign(
-                        tau = lambda x: x['app_nendo_period'].str[-4:].astype(np.int64),
-                        ln_patent = lambda x: np.log1p(x['patent_count']), 
-                        ln_fitness = lambda x: np.log(x['fitness']),
-                        ln_mcp = lambda x: np.log(x['mpc']),
-                        z_fitness = lambda x: (x['fitness'] - x['fitness'].mean()) / x['fitness'].std(),
-                    )
-panel_df = pd.merge(
-    grp_df,
-    fitness_df,
-    on=['prefecture', 'tau'],
-    how='inner'
-    )\
-    .set_index(['prefecture', 'tau'])
-panel_df
+    ).filter(items=['Field_number', 'Field_en'])\
+    .drop_duplicates(
+        keep='first'
+    )
+ 
+display(schmoch35_df)
 
-
-#%%
-from linearmodels.panel import PanelOLS
-
-
-model = PanelOLS.from_formula(
-    "g5_bar_pc_yen ~ 1 + ln_GRP + fitness + EntityEffects + TimeEffects",
-    # "g5_bar_pc_yen ~ 1 + ln_GRP + fitness + ln_capita",
-    data=panel_df
+# %%
+pd.merge(
+    tech_result_df,
+    schmoch35_df,
+    left_on='tech',
+    right_on='Field_number',
+    how='left'
 )
-# Driscoll-Kraay SE (空間+時間の依存を許容)
-res = model.fit(cov_type="kernel", kernel="bartlett", bandwidth=7)
-print(res.summary)
-
-# %%
-grp_df
-# %%
