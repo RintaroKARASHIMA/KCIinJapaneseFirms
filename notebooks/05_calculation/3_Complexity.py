@@ -1,9 +1,10 @@
-#! (root)/notebooks/3_calculate/1_AggregateWeight.py python3
+#! (root)/notebooks/05_calculation/3_Complexity.py python3
 # -*- coding: utf-8 -*-
 #%%
 import sys
 import numpy as np
 import pandas as pd
+
 from IPython.display import display
 from pathlib import Path
 
@@ -11,49 +12,59 @@ from ecomplexity import ecomplexity
 
 sys.path.append(str(Path(__file__).resolve().parents[2]) + '/src/')
 from initialize.config_loader import  load_filter_config, load_adj_config
-from calculation import biadjm
+from calculation import aggregate, biadjm
+from visualize.bump_chart import *
 
-
-agg_cfg = load_filter_config(str(Path(__file__).resolve().parents[2]) + '/config/reg_num_filter_agg.yaml')
-cmp_cfg = load_adj_config(str(Path(__file__).resolve().parents[2]) + '/config/complexity.yaml')
+adj_cfg = load_adj_config(str(Path(__file__).resolve().parents[2]) + '/config/adj.yaml')
 
 #%%
-agg_df = pd.read_csv(
-    f'{agg_cfg.out_dir}{agg_cfg.out_file_name}.csv',
+adj_df = pd.read_csv(
+    f'{adj_cfg.out_dir}{adj_cfg.out_file_name}.csv',
     encoding='utf-8',
     sep=',',
 )
 
-#%%
-agg_df
-#%%
-# adj_df = pd.concat(
-#     [biadjm.compute_pref_schmoch_lq(
-#                              agg_df.query('period == @period'),
-#                             producer_col = cmp_cfg.region_corporation,
-#                             class_col = cmp_cfg.classification,
-#                             count_col = 'weight',
-#     ).assign(
-#         period = lambda x: period
-#     ) for period in agg_df.period.unique()],
-#     axis='index',
-#     ignore_index=True)
-# adj_df
-
-
-#%%
-# ここから技術分野ごとの特許数分布可視化
-
-#%%
+# %%
 trade_cols = {
     "time": "period",
-    "loc": cmp_cfg.region_corporation,
-    "prod": cmp_cfg.classification,
+    "loc": adj_cfg.region_corporation,
+    "prod": adj_cfg.classification,
     "val": "weight",
 }
-c_df = ecomplexity(agg_df, trade_cols, rca_mcp_threshold=1)
-c_df
+c_df = ecomplexity(adj_df, trade_cols, rca_mcp_threshold=1)
+c_df.filter(items=['period', adj_cfg.classification, 'pci'])
 # %%
+# %%
+
+# %%
+# 1) 期ごとに tci の順位を作成（大きいほど1位）
+df_ranked = (
+    c_df.assign(
+        Ranking = c_df.groupby("period")["pci"].rank(ascending=False, method="dense")
+    )
+    .assign(Ranking=lambda d: d["Ranking"].astype(int))   # 見栄え用に整数化
+).query('period != "1981-2010"')
+
+# 2) サンプルが期待する列名にあわせてリネーム
+# df_income = (
+#     df_ranked.rename(columns={
+#         "period": "Year",
+#         "ipc3": "District Name",
+#         "pci": "Income"   # ← サンプルの hover が "Income" を参照するため合わせる
+#     })
+#     .sort_values(["Year", "Ranking"], ignore_index=True)\
+#     .filter(items=['Year', 'District Name', 'Income', 'Ranking'])
+# )
+df_income = (
+    df_ranked.filter(items=['period', 'ipc4', 'pci', 'Ranking'])\
+             .drop_duplicates()\
+             .sort_values(['period', 'Ranking'], ignore_index=True)\
+             .assign(
+                 ipc1 = lambda x: x['ipc4'].str[:1],
+             )
+)
+#%%
+display(df_income)
 
 #%%
 # Update: remove trailing rank digits next to labels and ensure y-axis is reversed.
@@ -328,25 +339,11 @@ palette_s8 = {
     "H": "#999999",  # black
 }
 
-df_ranked = (
-    c_df.assign(
-        Ranking = c_df.groupby("period")["pci"].rank(ascending=False, method="dense")
-    )
-    .assign(Ranking=lambda d: d["Ranking"].astype(int))   # 見栄え用に整数化
-).query('period != "1981-2010"')
 
-df_income = (
-    df_ranked.filter(items=['period', 'ipc3', 'pci', 'Ranking'])\
-             .drop_duplicates()\
-             .sort_values(['period', 'Ranking'], ignore_index=True)\
-             .assign(
-                 ipc1 = lambda x: x['ipc3'].str[:1],
-             )
-)
 ax = bump_chart_from_pci(
     df_income,
     period_col="period",
-    ipc_col="ipc3",
+    ipc_col="ipc4",
     pci_col="pci",
     ranking_col=None,
     ytick_multiple=5,
@@ -359,4 +356,36 @@ ax = bump_chart_from_pci(
 ax.invert_yaxis()  # 1位が上
 plt.show()
 
+ #%%
+
+
+# %%
+custom_colors = get_custom_colors(background="light")
+fig = go.Figure()
+
+year_order = sorted(df_income["Year"].unique())
+add_district_traces(fig, df_income.query('Ranking <= 30'), 
+                    custom_colors, year_order)
+add_ranking_annotations(fig, df_income, year_order)
+
+add_subtitle(fig, "", subtitle_font_size=15, subtitle_color="grey", y_offset=1.05, x_offset=0.0)
+add_footer(fig, "", footer_font_size=12, footer_color="grey", y_offset=-0.1, x_offset=0.35)
+
+customize_layout(fig, year_order=year_order)
+fig.show()
+
+#%%
+custom_colors = get_custom_colors(background="light")
+fig = go.Figure()
+
+year_order = sorted(df_income["Year"].unique())
+add_district_traces(fig, df_income.query('31<= Ranking <= 60'), 
+                    custom_colors, year_order)
+add_ranking_annotations(fig, df_income, year_order)
+
+add_subtitle(fig, "", subtitle_font_size=15, subtitle_color="grey", y_offset=1.05, x_offset=0.0)
+add_footer(fig, "", footer_font_size=12, footer_color="grey", y_offset=-0.1, x_offset=0.35)
+
+customize_layout(fig, year_order=year_order)
+fig.show()
 # %%

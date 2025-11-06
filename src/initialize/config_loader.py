@@ -10,11 +10,6 @@ class WeightConfig:
     year_style: str
     region_corporation: str
     classification: str
-    applicant_weight: str
-    class_weight: str
-    extract_population: str
-    top_p_or_num: str
-    top_p_or_num_value: int
     in_dir: str
     out_dir: str
     out_file_name: str
@@ -97,3 +92,4 @@ def load_adj_config(path: Path) -> AdjConfig:
     raw['out_file_name'] = raw['out_file_name'].format(**raw)
 
     return AdjConfig(**raw)
+

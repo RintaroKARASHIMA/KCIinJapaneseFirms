@@ -10,7 +10,7 @@ def plot_reg_num_cdf(agg_df: pd.DataFrame,
     if agg_df['period'].nunique() == 1:
         cumsum = np.cumsum(
                             np.bincount(agg_df.query(f'period == {year_start}-{year_end}')\
-                                        ['reg_num'])
+                                        ['weight'])
                             )
         cdf = cumsum / cumsum.sum()
         ccdf = 1 - cdf
@@ -30,7 +30,7 @@ def plot_reg_num_cdf(agg_df: pd.DataFrame,
     else:
         cumsum_list = [
             np.cumsum(
-                np.bincount(agg_df.query(f'period != {period}')['reg_num'])
+                np.bincount(agg_df.query(f'period != {period}')['weight'])
             )
             for period in agg_df['period'].unique() if period != f'{year_start}-{year_end}'
         ]
@@ -48,7 +48,7 @@ def plot_reg_num_cdf(agg_df: pd.DataFrame,
             )
             ax[i].set_xscale('log')
             ax[i].set_yscale('log')
-            ax[i].set_xlabel('Reg Num')
+            ax[i].set_xlabel('Weight')
             ax[i].set_ylabel('CDF')
             ax[i].set_title('Reg Num CCDF')
         plt.show()
@@ -63,27 +63,32 @@ def reg_num_filter(weighted_df: pd.DataFrame,
                 year_range: int,
                 applicant_weight: str,
                 class_weight: str,
+                extract_span: str,
                 extract_population: str, 
                 top_p_or_num: str, 
                 top_p_or_num_value: int) -> pd.DataFrame:
     col_dict = {
-        'duplication_fraction': 'class_fraction',
-        'fraction_duplication': 'applicant_fraction',
-        'fraction_fraction': 'both_fraction',
+        'corporation': applicant_weight,
+        'prefecture': applicant_weight,
+        'schmoch35': class_weight,
+        'ipc3': class_weight,
+        'ipc4': class_weight,
         }
-    if f'{applicant_weight}_{class_weight}' == 'duplication_duplication':
-        raise ValueError(f'{applicant_weight}_{class_weight} is not supported')
-        return None
     weighted_df = weighted_df.filter(
                                 items=[f'{ar}_{year_style}', extract_population,
-                                       'reg_num', col_dict[f'{applicant_weight}_{class_weight}']],
+                                       'reg_num', f'{extract_population}_dup'],
                                )\
                             .query(f'{start_year} <= {ar}_{year_style} <= {end_year}', 
                                 engine='python')\
-                            .drop_duplicates(keep='first', ignore_index=True)
+                            .drop_duplicates(keep='first', ignore_index=True)\
+                            .assign(
+                                weight = lambda x: (1 / (x[f'{extract_population}_dup']))
+                                                   if col_dict[extract_population] == 'fraction'
+                                                   else 1,
+                            )
     long_df = weighted_df.groupby([extract_population], as_index=False)\
                          .agg(
-                              weight = (col_dict[f'{applicant_weight}_{class_weight}'], 'sum'),
+                              weight = ('weight', 'sum'),
                              )\
                          .assign(
                                  period = f'{start_year}-{end_year}',
@@ -96,19 +101,74 @@ def reg_num_filter(weighted_df: pd.DataFrame,
         [weighted_df.query(f'{year} <= {ar}_{year_style} <= {year+year_range-1}')\
                     .groupby([extract_population], as_index=False)\
                     .agg(
-                        weight = (col_dict[f'{applicant_weight}_{class_weight}'], 'sum'),
+                        weight = ('weight', 'sum'),
                         )\
                     .assign(
                         period = f'{year}-{year+year_range-1}',
                         top_flag = lambda x: np.where(x['weight'] >= x['weight'].quantile((100-top_p_or_num_value) / 100), 1, 0) 
-                                                              if top_p_or_num == 'p'
-                                                              else np.where(x['weight'].isin(x['weight'].nlargest(top_p_or_num_value)), 1, 0),
+                                            if top_p_or_num == 'p'
+                                            else np.where(x['weight'].isin(x['weight'].nlargest(top_p_or_num_value)), 1, 0),
                     )
          for year in range(start_year, end_year+1, year_range)],
         axis='index', ignore_index=True
     )
-    plot_reg_num_cdf(long_df, start_year, end_year, year_range)
-    plot_reg_num_cdf(sep_df, start_year, end_year, year_range)
-    return pd.concat([long_df, sep_df], axis='index', ignore_index=True)\
-             .query('top_flag == 1')\
-             .drop(columns=['top_flag'])
+    # plot_reg_num_cdf(long_df, start_year, end_year)
+    # plot_reg_num_cdf(sep_df, start_year, end_year, year_range)
+    if extract_span == 'all':
+        print(long_df.query('top_flag == 1').shape)
+        res = pd.merge(
+            weighted_df,
+            long_df.query('top_flag == 1')\
+                .drop(columns=['top_flag']),
+            on=extract_population,
+            how='inner'
+        )
+    else:
+        res = pd.merge(
+            weighted_df,
+            sep_df.query('top_flag == 1')\
+                .drop(columns=['top_flag']),
+            on=extract_population,
+            how='inner'
+        )
+    
+    return res.filter(items=['reg_num', extract_population])\
+              .drop_duplicates(keep='first', ignore_index=True)
+
+
+def aggregate(weighted_df: pd.DataFrame, 
+                ar: str,
+                year_style: str,
+                start_year: int,
+                end_year: int,
+                applicant_weight: str,
+                class_weight: str,
+                region_corporation: str, 
+                classification: str,) -> pd.DataFrame:
+    weight_dict = {
+        'duplication_fraction': lambda x: 1 / (x[f'{classification}_dup']),
+        'fraction_duplication': lambda x: 1 / (x[f'{region_corporation}_dup']),
+        'fraction_fraction': lambda x: 1 / (x[f'{region_corporation}_dup'] * x[f'{classification}_dup']),
+        }
+    weighted_df = weighted_df.filter(
+                                items=[f'{ar}_{year_style}', 
+                                       region_corporation,
+                                       classification,
+                                       'reg_num', f'{region_corporation}_dup', 
+                                       f'{classification}_dup'],
+                               )\
+                            .query(f'{start_year} <= {ar}_{year_style} <= {end_year}', 
+                                engine='python')\
+                            .drop_duplicates(keep='first', ignore_index=True)\
+                            .assign(
+                                weight = weight_dict[f'{applicant_weight}_{class_weight}']
+                                )\
+                            .drop(columns=[f'{region_corporation}_dup', f'{classification}_dup'])
+    agg_df = weighted_df.groupby([region_corporation, classification], as_index=False)\
+                         .agg(
+                              weight = ('weight', 'sum'),
+                             )\
+                         .assign(
+                                 period = f'{start_year}-{end_year}',
+                         )
+    return agg_df

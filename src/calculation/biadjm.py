@@ -74,7 +74,8 @@ def compute_pref_schmoch_lq(
         )
         .assign(
             mpc=lambda x: np.where(
-                (x["rta"] >= 1.0) | (x[count_col] >= x["class_q"]),
+                # (x["rta"] >= 1.0) | (x[count_col] >= x["class_q"]),
+                (x["rta"] >= 1.0),
                 1, 0
             ).astype(np.int64)
         )
