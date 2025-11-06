@@ -13,11 +13,8 @@ extract_population: 'corporation'
 top_p_or_num: 'p'
 top_p_or_num_value: 3
 
-linkage: 'RTA'
-threshold: 1
-
-in_dir: '../../data/interim/internal/aggregated/'
-out_dir: '../../data/interim/internal/complexity/'
+in_dir: '../../data/interim/internal/jp_filtered/'
+out_dir: '../../data/interim/internal/aggregated/'
 
 in_file_name: '{ar}_{year_style}_{region_corporation}_{classification}'
 out_file_name: '{ar}_{year_style}_{year_start}_{year_end}_{year_range}_{region_corporation}_{applicant_weight}_{classification}_{class_weight}_{extract_population}_{extract_span}_{top_p_or_num}_{top_p_or_num_value}'
