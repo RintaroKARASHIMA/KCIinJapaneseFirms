@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from typing import Literal, List, Dict, Any
+from typing import Literal, Union
+
 
 def compute_pref_schmoch_lq(
     df: pd.DataFrame,
@@ -9,57 +10,81 @@ def compute_pref_schmoch_lq(
     producer_col: str = "prefecture",
     class_col: str = "schmoch35",
     count_col: str = "patent_count",
-    q: float = 0.5,
+    linkage: Literal["CM", "RTA"] = "RTA",
+    rta_threshold: int = 1,
+    cm_threshold: Union[float, Literal["outlier"]] = "outlier",
 ) -> pd.DataFrame:
-    """Compute LQ (a.k.a. RTA/RCA-like) and mpc with a per-class quantile cutoff.
+    """Compute LQ (RTA/RCA-like) and mpc based on linkage rule.
 
-    For each technology class k, set a_k to the q-th percentile (default: 25th)
-    of the distribution of patent counts across locations. Then define:
-      mpc = 1 if (rta >= 1) OR (count >= a_k), else 0.
+    This function computes:
+      rta = (count_{p,k} / sum_p count_{p,k}) / (sum_k count_{p,k} / sum_{p,k} count_{p,k})
+
+    Then defines mpc as:
+      - linkage == "RTA":
+          mpc = 1 if rta >= rta_threshold else 0
+      - linkage == "CM":
+          mpc = 1 if (rta >= rta_threshold) AND (count >= threshold_k) else 0
+          where threshold_k is:
+            * if cm_threshold is float: threshold_k = cm_threshold (constant for all classes)
+            * if cm_threshold == "outlier": threshold_k = (Q3 - Q1) * 1.5 computed within each class
 
     Args:
-        df: A DataFrame containing at least (producer_col, class_col, count_col).
-        aggregate: If True, pre-aggregate counts by (prefecture, class).
+        df: DataFrame containing at least (producer_col, class_col, count_col).
+        aggregate: If True, pre-aggregate counts by (producer_col, class_col).
         producer_col: Column name of location/prefecture.
         class_col: Column name of technology class.
-        count_col: Column name of patent count for (prefecture, class).
-        q: Quantile for per-class cutoff a_k (default 0.25).
+        count_col: Column name of patent count for (producer, class).
+        linkage: "RTA" or "CM" linkage rule for defining mpc.
+        rta_threshold: Threshold for rta. Rows with rta >= rta_threshold are considered active.
+        cm_threshold: Threshold for count_col used only when linkage == "CM".
+            If float, uses that constant value.
+            If "outlier", uses per-class (Q3 - Q1) * 1.5.
 
     Returns:
         DataFrame with columns:
-          [producer_col, class_col, count_col, rta, class_q, mpc]
-        where class_q is the per-class quantile cutoff a_k.
+          [producer_col, class_col, count_col, rta, cm_cutoff, mpc]
+        where cm_cutoff is the cutoff used for the CM rule:
+          - NaN when linkage == "RTA"
+          - constant (float) when linkage == "CM" and cm_threshold is float
+          - per-class value when linkage == "CM" and cm_threshold == "outlier"
     """
     cols = [producer_col, class_col, count_col]
     missing = [c for c in cols if c not in df.columns]
     if missing:
         raise KeyError(f"missing columns: {missing}")
 
+    if linkage not in {"CM", "RTA"}:
+        raise ValueError("linkage must be either 'CM' or 'RTA'")
+
+    if rta_threshold is None:
+        raise ValueError("rta_threshold must not be None")
+
+    if linkage == "CM":
+        if isinstance(cm_threshold, str) and cm_threshold != "outlier":
+            raise ValueError("cm_threshold must be a float or 'outlier'")
+
     # 必要列だけ抽出（メモリ節約）
     base = df[cols]
 
-    # 事前集計（重複( p,c )がある場合を安全に処理）
+    # 事前集計（重複( producer,class )がある場合を安全に処理）
     if aggregate:
         base = (
             base.groupby([producer_col, class_col], observed=True, sort=False, as_index=False)[count_col]
-                .sum()
+            .sum()
         )
 
     # 総計（スカラー）
     total = float(base[count_col].sum())
-    if total == 0:
-        # 全ゼロなら早期リターン（rta=NaN, mpc=0）
+    if total == 0.0:
         out = base.copy()
         out["rta"] = np.nan
-        out["class_q"] = 0.0
+        out["cm_cutoff"] = np.nan
         out["mpc"] = 0
         return out
 
-    # 各クラス内での地域別件数分布の q 分位点（= a_k）を算出し列として付与
-    # ※ groupby.transform でクラスごとの同一長ベクトルを返す
+    # rta 計算
     result = (
-        base
-        .assign(
+        base.assign(
             _c_total=lambda x: x.groupby(class_col, observed=True)[count_col].transform("sum"),
             _p_total=lambda x: x.groupby(producer_col, observed=True)[count_col].transform("sum"),
         )
@@ -67,18 +92,34 @@ def compute_pref_schmoch_lq(
             rta=lambda x: (x[count_col] / x["_c_total"]) / (x["_p_total"] / total)
         )
         .drop(columns=["_c_total", "_p_total"])
-        .assign(
-            class_q=lambda x: x.groupby(class_col)[count_col].transform(
-                lambda s: (s.quantile(0.75)-s.quantile(0.25))*1.5
+    )
+
+    # CM 用のカットオフ（必要な場合のみ）
+    if linkage == "CM":
+        if isinstance(cm_threshold, str) and cm_threshold == "outlier":
+            result = result.assign(
+                cm_cutoff=lambda x: x.groupby(class_col, observed=True)[count_col].transform(
+                    lambda s: (s.quantile(0.75) - s.quantile(0.25)) * 1.5
+                )
             )
+        else:
+            cm_value = float(cm_threshold)
+            result = result.assign(cm_cutoff=cm_value)
+    else:
+        result = result.assign(cm_cutoff=np.nan)
+
+    # mpc 作成
+    if linkage == "RTA":
+        result = result.assign(
+            mpc=lambda x: (x["rta"] >= float(rta_threshold)).astype(np.int64)
         )
-        .assign(
-            mpc=lambda x: np.where(
-                # (x["rta"] >= 1.0) | (x[count_col] >= x["class_q"]),
-                (x["rta"] >= 1.0),
-                1, 0
+    elif linkage == "CM":
+        result = result.assign(
+            mpc=lambda x: (
+                (x["rta"] >= float(rta_threshold)) & (x[count_col] >= x["cm_cutoff"])
             ).astype(np.int64)
         )
-    )
+    else:
+        raise ValueError("linkage must be either 'RTA' or 'CM'")
 
     return result

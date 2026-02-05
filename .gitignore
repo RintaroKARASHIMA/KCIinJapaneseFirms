@@ -1,5 +1,6 @@
 # アーカイブファイル
 /archive/*
+bash.exe.stackdump
 
 # データ
 /data/*

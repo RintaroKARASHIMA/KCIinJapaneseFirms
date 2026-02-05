@@ -76,7 +76,8 @@ class AdjConfig:
     top_p_or_num: str
     top_p_or_num_value: int
     linkage: str
-    threshold: int
+    rta_threshold: int
+    cm_threshold: str | float
     
     in_dir: str
     out_dir: str

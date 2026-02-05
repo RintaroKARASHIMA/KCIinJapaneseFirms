@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from IPython.display import display
 from pathlib import Path
+from scipy.stats import spearmanr
 
 from ecomplexity import ecomplexity
 
@@ -39,10 +40,536 @@ agg_df
 #     axis='index',
 #     ignore_index=True)
 # adj_df
+#%%
+import numpy as np
+import pandas as pd
+from typing import Literal, List, Dict, Any
 
+
+def compute_pref_schmoch_lq(
+    df: pd.DataFrame,
+    aggregate: Literal[True, False] = True,
+    *,
+    producer_col: str = "prefecture",
+    class_col: str = "schmoch35",
+    count_col: str = "weight",
+    q: float = 0.5,
+) -> pd.DataFrame:
+    """Compute LQ (a.k.a. RTA/RCA-like) and mpc with a per-class quantile cutoff.
+
+    For each technology class k, set a_k to the q-th percentile (default: 25th)
+    of the distribution of patent counts across locations. Then define:
+      mpc = 1 if (rta >= 1) OR (count >= a_k), else 0.
+
+    Args:
+        df: A DataFrame containing at least (producer_col, class_col, count_col).
+        aggregate: If True, pre-aggregate counts by (prefecture, class).
+        producer_col: Column name of location/prefecture.
+        class_col: Column name of technology class.
+        count_col: Column name of patent count for (prefecture, class).
+        q: Quantile for per-class cutoff a_k (default 0.25).
+
+    Returns:
+        DataFrame with columns:
+          [producer_col, class_col, count_col, rta, class_q, mpc]
+        where class_q is the per-class quantile cutoff a_k.
+    """
+    cols = [producer_col, class_col, count_col]
+    missing = [c for c in cols if c not in df.columns]
+    if missing:
+        raise KeyError(f"missing columns: {missing}")
+
+    # 必要列だけ抽出（メモリ節約）
+    base = df[cols]
+
+    # 事前集計（重複( p,c )がある場合を安全に処理）
+    if aggregate:
+        base = (
+            base.groupby([producer_col, class_col], observed=True, sort=False, as_index=False)[count_col]
+                .sum()
+        )
+
+    # 総計（スカラー）
+    total = float(base[count_col].sum())
+    if total == 0:
+        # 全ゼロなら早期リターン（rta=NaN, mpc=0）
+        out = base.copy()
+        out["rta"] = np.nan
+        out["class_q"] = 0.0
+        out["mpc"] = 0
+        return out
+
+    # 各クラス内での地域別件数分布の q 分位点（= a_k）を算出し列として付与
+    # ※ groupby.transform でクラスごとの同一長ベクトルを返す
+    result = (
+        base
+        .assign(
+            _c_total=lambda x: x.groupby(class_col, observed=True)[count_col].transform("sum"),
+            _p_total=lambda x: x.groupby(producer_col, observed=True)[count_col].transform("sum"),
+        )
+        .assign(
+            rta=lambda x: (x[count_col] / x["_c_total"]) / (x["_p_total"] / total)
+        )
+        .drop(columns=["_c_total", "_p_total"])
+        .assign(
+            class_q=lambda x: x.groupby(class_col)[count_col].transform(
+                lambda s: (s.quantile(0.75)-s.quantile(0.25))*1.5
+            )
+        )
+        .assign(
+            mpc=lambda x: np.where(
+                (x["rta"] >= 1.0) | (x[count_col] >= x["class_q"]),
+                1, 0
+            ).astype(np.int64)
+        )
+    )
+
+    return result
+
+#%%
+compute_pref_schmoch_lq(agg_df, 
+                        aggregate=True, 
+                        producer_col=cmp_cfg.region_corporation, 
+                        class_col=cmp_cfg.classification, 
+                        count_col='weight')
+
+
+def define_mcp(sep_mcp: pd.DataFrame) -> pd.DataFrame:
+    
+    # Computation of RCA
+    def rca(biadjm):
+        RCA = np.zeros_like(biadjm, dtype=float)
+        rows_degrees = biadjm.sum(axis=1)
+        cols_degrees = biadjm.sum(axis=0)
+        tot_degrees = biadjm.sum()
+        for i in range(np.shape(biadjm)[0]):
+            if rows_degrees[i] != 0:
+                for j in range(np.shape(biadjm)[1]):
+                    if cols_degrees[j] != 0:
+                        RCA[i,j] = (biadjm[i, j] / rows_degrees[i]) / (cols_degrees[j] / tot_degrees)
+        return RCA
+
+
+    # Computation of Fitness and Complexity
+    def Fitn_Comp(biadjm):
+        FFQQ_ERR = 10 ** -4
+        spe_value = 10**-3
+        bam = np.array(biadjm)
+        c_len, p_len = bam.shape
+        ff1 = np.ones(c_len)
+        qq1 = np.ones(p_len)
+        ff0 = np.sum(bam, axis=1)
+        ff0 = ff0 / np.mean(ff0)
+        qq0 = 1. / np.sum(bam, axis=0)
+        qq0 = qq0 / np.mean(qq0)
+
+        ff0 = ff1
+        qq0 = qq1
+        ff1 = np.dot(bam, qq0)
+        qq1 = 1./(np.dot(bam.T, 1. / ff0))
+        ff1 /= np.mean(ff1)
+        qq1 /= np.mean(qq1)
+        coef = spearmanr(ff0, ff1)[0]
+
+        coef = 0.
+        i=0
+        while np.sum(abs(ff1 - ff0)) > FFQQ_ERR and np.sum(abs(qq1 - qq0)) > FFQQ_ERR and 1-abs(coef)>spe_value:
+            i+=1
+            print(i)
+            ff0 = ff1
+            qq0 = qq1
+            ff1 = np.dot(bam, qq0)
+            qq1 = 1./(np.dot(bam.T, 1. / ff0))
+            ff1 /= np.mean(ff1)
+            qq1 /= np.mean(qq1)
+            coef = spearmanr(ff0, ff1)[0]
+        return (ff0, qq0)
+
+
+    # Computation of Coherent Diversification
+    def coherence(biadjm,B_network):
+        bam = np.array(biadjm)
+        B = np.array(B_network)
+        div = np.sum(bam,axis=1)
+        gamma = np.nan_to_num(np.dot(B,bam.T).T)
+        GAMMA = bam * gamma
+        return np.nan_to_num(np.sum(GAMMA,axis=1)/div)
+    biadjm_presence = sep_mcp.pivot_table(
+        index="prefecture",
+        columns='schmoch35',
+        values="mpc",
+        aggfunc="sum",
+        fill_value=0
+    )
+    fitness, complexity = Fitn_Comp(biadjm_presence.values)
+    prefectures = biadjm_presence.index
+    techs = biadjm_presence.columns
+    result_df = pd.DataFrame(
+        {
+            'prefecture': prefectures,
+            'fitness': fitness
+        }
+    ).sort_values(by='fitness', ascending=False, ignore_index=True)
+    tech_result_df = pd.DataFrame(
+        {
+            'schmoch35': techs,
+            'complexity': complexity
+        }
+    ).sort_values(by='complexity', ascending=False, ignore_index=True)
+    return result_df, tech_result_df
+
+#%%
+mcp_df = compute_pref_schmoch_lq(agg_df, aggregate=True, producer_col=cmp_cfg.region_corporation, class_col=cmp_cfg.classification, 
+                        count_col='weight')
+f_df = define_mcp(mcp_df)[0]
+c_df = define_mcp(mcp_df)[1]
+c_df
+#%%
+adj_plot_df = pd.merge(mcp_df, f_df, on='prefecture', how='left')
+adj_plot_df = pd.merge(adj_plot_df, c_df, on='schmoch35', how='left')\
+                      .filter(items=['prefecture', 'schmoch35', 'mpc', 'fitness', 'complexity'])
+adj_plot_df
+schmoch35_df = pd.read_csv(
+    '../../data/processed/external/schmoch/35.csv',
+    encoding='utf-8',
+    sep=',',
+    ).filter(items=['Field_number', 'Field_en'])\
+    .drop_duplicates(
+        keep='first'
+    )
+schmoch35_df
+adj_plot_df = pd.merge(adj_plot_df, schmoch35_df, left_on='schmoch35', right_on='Field_number', how='left')\
+                      .drop(columns=['schmoch35', 'Field_number'])\
+                      .rename(columns={'Field_en':'schmoch35'})
+#%%
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+def plot_prefecture_schmoch_matrix(df: pd.DataFrame):
+    """
+    df: columns = ['prefecture', 'schmoch35', 'mpc', 'fitness', 'complexity']
+    """
+
+    # --------------------------
+    # 1. prefecture をローマ字表記にする（例）
+    # --------------------------
+    # 辞書は必要に応じて追加してください
+    romaji_map = {
+        '北海道': 'Hokkaido', '青森県': 'Aomori', '岩手県': 'Iwate', '宮城県': 'Miyagi',
+        '秋田県': 'Akita', '山形県': 'Yamagata', '福島県': 'Fukushima',
+        '茨城県': 'Ibaraki', '栃木県': 'Tochigi', '群馬県': 'Gunma',
+        '埼玉県': 'Saitama', '千葉県': 'Chiba', '東京都': 'Tokyo', '神奈川県': 'Kanagawa',
+        '新潟県': 'Niigata', '富山県': 'Toyama', '石川県': 'Ishikawa', '福井県': 'Fukui',
+        '山梨県': 'Yamanashi', '長野県': 'Nagano',
+        '岐阜県': 'Gifu', '静岡県': 'Shizuoka', '愛知県': 'Aichi',
+        '三重県': 'Mie', '滋賀県': 'Shiga', '京都府': 'Kyoto', '大阪府': 'Osaka',
+        '兵庫県': 'Hyogo', '奈良県': 'Nara', '和歌山県': 'Wakayama',
+        '鳥取県': 'Tottori', '島根県': 'Shimane', '岡山県': 'Okayama', '広島県': 'Hiroshima',
+        '山口県': 'Yamaguchi',
+        '徳島県': 'Tokushima', '香川県': 'Kagawa', '愛媛県': 'Ehime', '高知県': 'Kochi',
+        '福岡県': 'Fukuoka', '佐賀県': 'Saga', '長崎県': 'Nagasaki',
+        '熊本県': 'Kumamoto', '大分県': 'Oita', '宮崎県': 'Miyazaki', '鹿児島県': 'Kagoshima',
+        '沖縄県': 'Okinawa'
+    }
+
+    df = df.copy()
+    df['prefecture_romaji'] = df['prefecture'].map(romaji_map).fillna(df['prefecture'])
+
+    # --------------------------
+    # 2. prefecture を fitness 降順に
+    # --------------------------
+    order_pref = (
+        df[['prefecture_romaji', 'fitness']]
+        .drop_duplicates()
+        .sort_values(by='fitness', ascending=False)
+        ['prefecture_romaji']
+    )
+
+    # --------------------------
+    # 3. schmoch35 を complexity 昇順に並べる
+    # --------------------------
+    order_schmoch = (
+        df[['schmoch35', 'complexity']]
+        .drop_duplicates()
+        .sort_values(by='complexity')
+        ['schmoch35']
+        .tolist()
+    )
+
+    # --------------------------
+    # 4. pivot（隣接行列 mpc）
+    # --------------------------
+    pivot_df = df.pivot_table(
+        index='prefecture_romaji',
+        columns='schmoch35',
+        values='mpc',
+        fill_value=0
+    )
+
+    # 並び順を適用
+    pivot_df = pivot_df.loc[order_pref, order_schmoch]
+
+    # --------------------------
+    # 5. 描画
+    # --------------------------
+    plt.figure(figsize=(11, 13))
+    plt.imshow(pivot_df, aspect='auto', cmap='Greys', interpolation='nearest')
+    # plt.colorbar(label='mpc (0/1)')
+
+    plt.xticks(
+        ticks=np.arange(len(order_schmoch)),
+        labels=order_schmoch,
+        rotation=90
+    )
+    plt.yticks(
+        ticks=np.arange(len(order_pref)),
+        labels=order_pref
+    )
+
+    plt.xlabel('Schmoch 35 Classes (sorted by complexity)')
+    plt.ylabel('Prefecture (sorted by fitness)')
+    plt.title('Prefecture × Schmoch35 Matrix (mpc adjacency)')
+
+    plt.tight_layout()
+    plt.show()
+
+
+# --------------------------
+# 使用例
+# --------------------------
+# plot_prefecture_schmoch_matrix(df)
+
+plot_prefecture_schmoch_matrix(adj_plot_df)
 
 #%%
 # ここから技術分野ごとの特許数分布可視化
+adj_plot_df.columns
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional, Tuple, Dict
+
+import numpy as np
+import pandas as pd
+
+
+@dataclass(frozen=True)
+class NestednessResult:
+    """Container for nestedness (NODF) outputs."""
+    nodf: float
+    binary_matrix: pd.DataFrame  # rows=prefecture, cols=schmoch35, values in {0,1}
+    rca_matrix: pd.DataFrame     # rows=prefecture, cols=schmoch35, RCA values
+    sorted_binary_matrix: pd.DataFrame  # degree-sorted matrix used in NODF computation
+
+
+def _compute_nodf_from_binary_matrix(A: np.ndarray) -> Tuple[float, np.ndarray, np.ndarray, np.ndarray]:
+    """Compute NODF for a binary bipartite adjacency matrix.
+
+    Args:
+        A: Binary matrix of shape (R, C) with values 0/1.
+
+    Returns:
+        nodf: NODF in [0, 100].
+        M: degree-sorted binary matrix used for computation.
+        row_order: indices used to sort rows (descending degree).
+        col_order: indices used to sort cols (descending degree).
+    """
+    if A.ndim != 2:
+        raise ValueError("A must be a 2D matrix.")
+    M0 = (A > 0).astype(np.int8)
+
+    row_deg = M0.sum(axis=1)
+    col_deg = M0.sum(axis=0)
+
+    # Stable sort for deterministic output when ties exist
+    row_order = np.argsort(-row_deg, kind="mergesort")
+    col_order = np.argsort(-col_deg, kind="mergesort")
+
+    M = M0[row_order][:, col_order]
+    R, C = M.shape
+
+    row_deg_s = M.sum(axis=1)
+    col_deg_s = M.sum(axis=0)
+
+    row_sum = 0.0
+    for i in range(R - 1):
+        ki = row_deg_s[i]
+        if ki == 0:
+            continue
+        for j in range(i + 1, R):
+            kj = row_deg_s[j]
+            if kj == 0:
+                continue
+            if ki > kj:
+                overlap = int(np.dot(M[i], M[j]))
+                row_sum += overlap / kj
+
+    col_sum = 0.0
+    for p in range(C - 1):
+        kp = col_deg_s[p]
+        if kp == 0:
+            continue
+        for q in range(p + 1, C):
+            kq = col_deg_s[q]
+            if kq == 0:
+                continue
+            if kp > kq:
+                overlap = int(np.dot(M[:, p], M[:, q]))
+                col_sum += overlap / kq
+
+    n_row_pairs = R * (R - 1) / 2
+    n_col_pairs = C * (C - 1) / 2
+    denom = n_row_pairs + n_col_pairs
+
+    nodf = 0.0 if denom == 0 else 100.0 * (row_sum + col_sum) / denom
+    return nodf, M, row_order, col_order
+
+
+def compute_nestedness_nodf(
+    df: pd.DataFrame,
+    *,
+    prefecture_col: str = "prefecture",
+    tech_col: str = "schmoch35",
+    value_col: str = "mpc",
+    rca_threshold: float = 1.0,
+    drop_zero_rows_cols: bool = True,
+) -> NestednessResult:
+    """Compute nestedness (NODF) from a long-form dataframe with prefecture-tech values.
+
+    Standard pipeline:
+      1) Aggregate value_col by (prefecture, tech).
+      2) Build a bipartite matrix X (prefecture x tech).
+      3) Compute RCA:
+            RCA_{p,t} = (X_{p,t} / sum_t X_{p,t}) / (sum_p X_{p,t} / sum_{p,t} X_{p,t})
+         Then define adjacency as 1{RCA >= rca_threshold}.
+      4) Compute NODF on the binary matrix.
+
+    Args:
+        df: DataFrame containing columns prefecture_col, tech_col, value_col.
+        prefecture_col: Row entity column name.
+        tech_col: Column entity column name.
+        value_col: Weight/value column name (e.g., patent counts, mpc).
+        rca_threshold: Threshold to binarize RCA into adjacency (default 1.0).
+        drop_zero_rows_cols: If True, drop rows/cols that become all-zero after binarization.
+
+    Returns:
+        NestednessResult including NODF and matrices.
+    """
+    required = {prefecture_col, tech_col, value_col}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"df is missing required columns: {sorted(missing)}")
+
+    work = df[[prefecture_col, tech_col, value_col]].copy()
+    work[value_col] = pd.to_numeric(work[value_col], errors="coerce")
+    work = work.dropna(subset=[prefecture_col, tech_col, value_col])
+    if work.empty:
+        raise ValueError("No valid rows after dropping NaNs in required columns.")
+
+    # 1) Aggregate
+    agg = (
+        work.groupby([prefecture_col, tech_col], as_index=False)[value_col]
+        .sum()
+    )
+
+    # 2) Pivot to matrix X
+    X = agg.pivot(index=prefecture_col, columns=tech_col, values=value_col).fillna(0.0)
+    # If everything is zero, RCA is undefined
+    total = float(X.to_numpy().sum())
+    if total <= 0.0:
+        raise ValueError("Total sum of the prefecture-tech matrix is zero. RCA cannot be computed.")
+
+    row_sum = X.sum(axis=1)
+    col_sum = X.sum(axis=0)
+
+    # Guard against division by zero (rows/cols with zero activity)
+    # We'll compute RCA only where row_sum>0 and col_sum>0; else RCA=0
+    with np.errstate(divide="ignore", invalid="ignore"):
+        # share within prefecture
+        share_pt = X.div(row_sum.replace(0.0, np.nan), axis=0)
+        # global tech share
+        share_t = (col_sum / total).replace(0.0, np.nan)
+
+        rca = share_pt.div(share_t, axis=1).fillna(0.0)
+
+    # 3) Binarize by RCA threshold
+    B = (rca >= float(rca_threshold)).astype(np.int8)
+
+    if drop_zero_rows_cols:
+        keep_rows = B.sum(axis=1) > 0
+        keep_cols = B.sum(axis=0) > 0
+        B = B.loc[keep_rows, keep_cols]
+        rca = rca.loc[B.index, B.columns]
+
+    if B.shape[0] < 2 or B.shape[1] < 2:
+        # NODF is not meaningful with fewer than 2 rows/cols (pairs become too few)
+        nodf = 0.0
+        sorted_B = B.copy()
+        return NestednessResult(
+            nodf=nodf,
+            binary_matrix=B,
+            rca_matrix=rca,
+            sorted_binary_matrix=sorted_B,
+        )
+
+    # 4) NODF computation
+    A = B.to_numpy()
+    nodf, M_sorted, row_order, col_order = _compute_nodf_from_binary_matrix(A)
+
+    sorted_B = pd.DataFrame(
+        M_sorted,
+        index=B.index.to_numpy()[row_order],
+        columns=B.columns.to_numpy()[col_order],
+    )
+
+    return NestednessResult(
+        nodf=float(nodf),
+        binary_matrix=B,
+        rca_matrix=rca,
+        sorted_binary_matrix=sorted_B,
+    )
+
+
+# -------------------------
+# Example usage:
+# -------------------------
+result = compute_nestedness_nodf(adj_plot_df)
+print("NODF:", result.nodf)
+# display(result.sorted_binary_matrix.head())
+
+#%%
+
+import numpy as np
+import pandas as pd
+
+# 既に前の compute_nestedness_nodf を定義済みとして使う想定
+
+def quick_diagnostics(df: pd.DataFrame) -> pd.DataFrame:
+    thresholds = [0.5, 1.0, 1.5, 2.0]
+    rows = []
+    for th in thresholds:
+        res = compute_nestedness_nodf(df, rca_threshold=th, drop_zero_rows_cols=True)
+        B = res.binary_matrix
+        R, C = B.shape
+        ones = int(B.to_numpy().sum())
+        density = float(ones / (R * C)) if R > 0 and C > 0 else np.nan
+        rows.append(
+            {
+                "rca_threshold": th,
+                "NODF": res.nodf,
+                "R": R,
+                "C": C,
+                "ones": ones,
+                "density": density,
+            }
+        )
+    return pd.DataFrame(rows)
+
+diag = quick_diagnostics(adj_plot_df)
+print(diag)
+
 
 #%%
 trade_cols = {

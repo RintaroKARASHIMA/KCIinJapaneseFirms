@@ -55,7 +55,8 @@ weighted_df = pd.merge(
     how='inner',
     )
 #%%
-weighted_df
+weighted_df.query('1981 <= app_nendo<=2010', engine='python')\
+           ['reg_num'].nunique()
 
 #%%
 reg_num_filter_df = reg_num_filter(weighted_df, filter_cfg.ar, filter_cfg.year_style, 
@@ -85,7 +86,7 @@ filtered_df = pd.merge(
     .drop_duplicates(keep='first', ignore_index=True)
 
 #%%
-filtered_df
+filtered_df['reg_num'].nunique()
 
 #%%
 agg_df = pd.concat(

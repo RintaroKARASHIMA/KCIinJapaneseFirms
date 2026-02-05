@@ -2,13 +2,15 @@ ar: 'app'
 year_style: 'nendo'
 year_start: 1981
 year_end: 2010
-year_range: 5
-region_corporation: 'prefecture'
+year_range: 10
+# region_corporation: 'prefecture'
+region_corporation: 'corporation'
 applicant_weight: 'fraction'
-classification: 'ipc3'
+classification: 'schmoch35'
 class_weight: 'fraction'
 
 extract_span: 'all'
+# extract_population: 'prefecture'
 extract_population: 'corporation'
 top_p_or_num: 'p'
 top_p_or_num_value: 3
